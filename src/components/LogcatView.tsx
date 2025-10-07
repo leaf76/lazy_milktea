@@ -22,8 +22,7 @@ export default function LogcatView() {
   });
   const [rows, setRows] = useState<LogRow[]>([]);
   const [cursor, setCursor] = useState<number | undefined>(undefined);
-  const [batch, setBatch] = useState(500);
-  const [displayMode, setDisplayMode] = useState<"all" | "batch">("all");
+  const [batch] = useState(1000); // internal chunk size for smooth loading
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [auto, setAuto] = useState(true);
@@ -53,17 +52,13 @@ export default function LogcatView() {
     setCursor(undefined);
     setHasMore(true);
     (async () => {
-      if (displayMode === "all") {
-        while (await loadMore()) {
-          // yield to UI
-          await new Promise((r) => setTimeout(r, 0));
-        }
-      } else {
-        await loadMore();
+      // always load from start to end once
+      while (await loadMore()) {
+        await new Promise((r) => setTimeout(r, 0));
       }
     })();
   }, 400);
-  useEffect(() => { if (auto) debouncedReset(); }, [filters, batch, auto, displayMode]);
+  useEffect(() => { if (auto) debouncedReset(); }, [filters, batch, auto]);
 
   const levelQuick = (profile: "E" | "WE" | "IWE" | "ALL") => {
     if (profile === "E") setFilters((f) => ({ ...f, levels: ["E", "F"] }));
@@ -107,20 +102,11 @@ export default function LogcatView() {
       <h2>Logcat</h2>
       <div className="card toolbar-grid">
         <div className="toolbar-row">
-          <div style={{ gridColumn: "span 3" }}>
+          <div style={{ gridColumn: "span 4" }}>
             <input className="dt-input" type="datetime-local" placeholder="From" value={filters.tsFrom ?? ""} onChange={(e) => setFilters((f) => ({ ...f, tsFrom: e.currentTarget.value || undefined }))} />
           </div>
-          <div style={{ gridColumn: "span 3" }}>
+          <div style={{ gridColumn: "span 4" }}>
             <input className="dt-input" type="datetime-local" placeholder="To" value={filters.tsTo ?? ""} onChange={(e) => setFilters((f) => ({ ...f, tsTo: e.currentTarget.value || undefined }))} />
-          </div>
-          <div style={{ gridColumn: "span 2" }}>
-            <select className="select" value={displayMode} onChange={(e) => setDisplayMode(e.currentTarget.value as any)}>
-              <option value="all">All</option>
-              <option value="batch">Batch</option>
-            </select>
-          </div>
-          <div style={{ gridColumn: "span 2" }}>
-            <input className="input" placeholder="Batch Size" value={batch} onChange={(e) => setBatch(Number(e.currentTarget.value) || 500)} disabled={displayMode === "all"} />
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button className="btn btn-primary" type="button" onClick={() => debouncedReset()} disabled={loading}>Search</button>
@@ -172,7 +158,6 @@ export default function LogcatView() {
       <div className="card log-view" style={{ marginTop: 8, height: 420 }}>
         <Virtuoso
           totalCount={rows.length}
-          endReached={() => { if (hasMore && !loading) loadMore(); }}
           itemContent={(index) => {
             const r = rows[index];
             if (!r) return null;

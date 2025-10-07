@@ -29,6 +29,7 @@ export default function LogcatView() {
   const [minInput, setMinInput] = useState<string>("");
   const [maxInput, setMaxInput] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const [auto, setAuto] = useState(true);
   const [wrap, setWrap] = useState(false);
 
@@ -48,26 +49,32 @@ export default function LogcatView() {
     (async () => {
       let cur: number | undefined = undefined;
       let loaded = 0;
-      while (true) {
-        const res: LogStreamResp = await invoke<LogStreamResp>("query_logcat_stream", { filters, cursor: cur, limit: batch });
-        if (reqRef.current !== myId) return;
-        if (res.fileSize) setFileSize(res.fileSize);
-        if (res.minIsoMs && res.maxIsoMs) {
-          setMinInput(toLocalInput(res.minIsoMs));
-          setMaxInput(toLocalInput(res.maxIsoMs));
+      try {
+        setErr(null);
+        while (true) {
+          const res: LogStreamResp = await invoke<LogStreamResp>("query_logcat_stream", { filters, cursor: cur, limit: batch });
+          if (reqRef.current !== myId) return;
+          if (res.fileSize) setFileSize(res.fileSize);
+          if (res.minIsoMs && res.maxIsoMs) {
+            setMinInput(toLocalInput(res.minIsoMs));
+            setMaxInput(toLocalInput(res.maxIsoMs));
+          }
+          setRows((prev) => {
+            const merged = prev.concat(res.rows);
+            loaded = merged.length;
+            return merged;
+          });
+          cur = res.nextCursor;
+          setCursor(res.nextCursor);
+          const more = !res.exhausted && res.rows.length > 0;
+          if (!more) { setTotalRows(loaded); break; }
+          await new Promise((r) => setTimeout(r, 0));
         }
-        setRows((prev) => {
-          const merged = prev.concat(res.rows);
-          loaded = merged.length;
-          return merged;
-        });
-        cur = res.nextCursor;
-        setCursor(res.nextCursor);
-        const more = !res.exhausted && res.rows.length > 0;
-        if (!more) { setTotalRows(loaded); break; }
-        await new Promise((r) => setTimeout(r, 0));
+      } catch (e: any) {
+        setErr(e?.message || String(e));
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     })();
   }, 400);
   useEffect(() => { if (auto) debouncedReset(); }, [filters, batch, auto]);
@@ -188,6 +195,7 @@ export default function LogcatView() {
       </div>
 
       <div className="card log-view" style={{ marginTop: 8, height: 420 }}>
+        {err && <div style={{ color: '#f87171', marginBottom: 8 }}>Error: {err}</div>}
         {(fileSize > 0) && (
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
             <div className="progress" style={{ flex: 1 }}>

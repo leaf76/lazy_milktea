@@ -50,4 +50,6 @@ export type LogStreamResp = {
   exhausted: boolean;
   fileSize: number;
   totalRows?: number;
+  minIsoMs?: number;
+  maxIsoMs?: number;
 };

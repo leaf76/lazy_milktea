@@ -26,6 +26,8 @@ export default function LogcatView() {
   const [fileSize, setFileSize] = useState<number>(0);
   const [totalRows, setTotalRows] = useState<number | undefined>(undefined);
   const reqRef = useRef(0);
+  const [minInput, setMinInput] = useState<string>("");
+  const [maxInput, setMaxInput] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [auto, setAuto] = useState(true);
   const [wrap, setWrap] = useState(false);
@@ -50,6 +52,10 @@ export default function LogcatView() {
         const res: LogStreamResp = await invoke<LogStreamResp>("query_logcat_stream", { filters, cursor: cur, limit: batch });
         if (reqRef.current !== myId) return;
         if (res.fileSize) setFileSize(res.fileSize);
+        if (res.minIsoMs && res.maxIsoMs) {
+          setMinInput(toLocalInput(res.minIsoMs));
+          setMaxInput(toLocalInput(res.maxIsoMs));
+        }
         setRows((prev) => {
           const merged = prev.concat(res.rows);
           loaded = merged.length;
@@ -88,6 +94,30 @@ export default function LogcatView() {
   const setTag = (tag?: string) => setFilters((f) => ({ ...f, tag }));
   const setPid = (pid?: number) => setFilters((f) => ({ ...f, pid }));
 
+  function toLocalInput(ms: number): string {
+    const d = new Date(ms);
+    const pad = (n: number, w = 2) => n.toString().padStart(w, "0");
+    const yyyy = d.getFullYear();
+    const MM = pad(d.getMonth() + 1);
+    const dd = pad(d.getDate());
+    const hh = pad(d.getHours());
+    const mm = pad(d.getMinutes());
+    const ss = pad(d.getSeconds());
+    return `${yyyy}-${MM}-${dd}T${hh}:${mm}:${ss}`;
+  }
+
+  function clampInput(v: string, minV: string, maxV: string): string | undefined {
+    if (!v) return undefined;
+    const toMs = (s: string) => s ? new Date(s).getTime() : undefined;
+    const x = toMs(v);
+    const lo = toMs(minV);
+    const hi = toMs(maxV);
+    if (typeof x !== 'number' || isNaN(x)) return undefined;
+    if (typeof lo === 'number' && x < lo) return minV || undefined;
+    if (typeof hi === 'number' && x > hi) return maxV || undefined;
+    return v;
+  }
+
   // listen to cross-view quick apply events
   useEffect(() => {
     const handler = (e: Event) => {
@@ -105,10 +135,10 @@ export default function LogcatView() {
       <div className="card toolbar-grid">
         <div className="toolbar-row">
           <div style={{ gridColumn: "span 4" }}>
-            <input className="dt-input" type="datetime-local" placeholder="From" value={filters.tsFrom ?? ""} onChange={(e) => setFilters((f) => ({ ...f, tsFrom: e.currentTarget.value || undefined }))} />
+            <input className="dt-input" type="datetime-local" step="1" min={minInput || undefined} max={maxInput || undefined} placeholder="From" value={filters.tsFrom ?? ""} onChange={(e) => setFilters((f) => ({ ...f, tsFrom: clampInput(e.currentTarget.value, minInput, maxInput) }))} />
           </div>
           <div style={{ gridColumn: "span 4" }}>
-            <input className="dt-input" type="datetime-local" placeholder="To" value={filters.tsTo ?? ""} onChange={(e) => setFilters((f) => ({ ...f, tsTo: e.currentTarget.value || undefined }))} />
+            <input className="dt-input" type="datetime-local" step="1" min={minInput || undefined} max={maxInput || undefined} placeholder="To" value={filters.tsTo ?? ""} onChange={(e) => setFilters((f) => ({ ...f, tsTo: clampInput(e.currentTarget.value, minInput, maxInput) }))} />
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button className="btn btn-primary" type="button" onClick={() => debouncedReset()} disabled={loading}>Search</button>

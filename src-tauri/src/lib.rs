@@ -66,7 +66,15 @@ async fn query_logcat(
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct StreamResp { rows: Vec<types::LogRow>, next_cursor: u64, exhausted: bool, file_size: u64, total_rows: Option<usize> }
+struct StreamResp {
+    rows: Vec<types::LogRow>,
+    next_cursor: u64,
+    exhausted: bool,
+    file_size: u64,
+    total_rows: Option<usize>,
+    min_iso_ms: Option<u64>,
+    max_iso_ms: Option<u64>,
+}
 
 #[tauri::command]
 async fn query_logcat_stream(
@@ -83,7 +91,11 @@ async fn query_logcat_stream(
         .ok_or_else(|| "No cache yet. Please parse a bugreport first.".to_string())?;
     let res = parser::stream_logcat(&cache_dir, &filters, cursor, (limit as usize).max(1))
         .map_err(|e| e.to_string())?;
-    Ok(StreamResp { rows: res.rows, next_cursor: res.next_cursor, exhausted: res.exhausted, file_size: res.file_size, total_rows: res.total_rows })
+    let (min_iso_ms, max_iso_ms) = std::fs::read(cache_dir.join("log_summary.json")).ok()
+        .and_then(|b| serde_json::from_slice::<parser::LogIndexSummary>(&b).ok())
+        .map(|s| (s.iso_min_ms, s.iso_max_ms))
+        .unwrap_or((None, None));
+    Ok(StreamResp { rows: res.rows, next_cursor: res.next_cursor, exhausted: res.exhausted, file_size: res.file_size, total_rows: res.total_rows, min_iso_ms, max_iso_ms })
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

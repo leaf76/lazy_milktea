@@ -171,6 +171,8 @@ pub struct LogIndexSummary {
     pub ef_total: usize,
     pub recent_ef: usize,
     pub recent_window: usize,
+    pub iso_min_ms: Option<u64>,
+    pub iso_max_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone)]
@@ -304,6 +306,8 @@ fn index_logcat_from_text(text: &str, cache_dir: &Path) -> Result<LogIndexSummar
     let mut ef_total = 0usize;
     let window = 2000usize;
     let mut last_levels: VecDeque<char> = VecDeque::with_capacity(window);
+    let mut iso_min_ms: Option<u64> = None;
+    let mut iso_max_ms: Option<u64> = None;
     let anchor = derive_time_anchor(text);
     // time index & offset tracking
     let mut byte_offset: u64 = 0;
@@ -339,6 +343,9 @@ fn index_logcat_from_text(text: &str, cache_dir: &Path) -> Result<LogIndexSummar
         // time index per minute (first log per minute records byte offset)
         if let Some(ref iso) = row.ts_iso {
             if let Ok(ts_key) = iso_ts_key_ms(iso) {
+                // min/max epoch
+                iso_min_ms = Some(iso_min_ms.map_or(ts_key, |m| m.min(ts_key)));
+                iso_max_ms = Some(iso_max_ms.map_or(ts_key, |m| m.max(ts_key)));
                 let minute_key = ts_key / 60_000;
                 if last_minute_key != Some(minute_key) {
                     time_index.push(TimeIndexEntry { ts_key_minute: minute_key, offset: byte_offset });
@@ -368,7 +375,7 @@ fn index_logcat_from_text(text: &str, cache_dir: &Path) -> Result<LogIndexSummar
         byte_offset += (line.as_bytes().len() as u64) + 1u64;
     }
     let recent_ef = last_levels.iter().filter(|&&c| c == 'E' || c == 'F').count();
-    let summary = LogIndexSummary { total_rows: count, ef_total, recent_ef, recent_window: window };
+    let summary = LogIndexSummary { total_rows: count, ef_total, recent_ef, recent_window: window, iso_min_ms, iso_max_ms };
     // persist summary
     let sum_path = cache_dir.join("log_summary.json");
     let _ = std::fs::write(&sum_path, serde_json::to_vec(&summary)?);

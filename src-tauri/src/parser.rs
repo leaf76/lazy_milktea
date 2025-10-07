@@ -5,7 +5,6 @@ use dirs::home_dir;
 use chrono::{DateTime, Local, Utc, Datelike, NaiveDate, NaiveTime, NaiveDateTime};
 use chrono::TimeZone;
 use chrono_tz::Tz;
-use regex::Regex;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Write, Seek, SeekFrom};
 use std::collections::{VecDeque, HashMap};
@@ -588,7 +587,7 @@ pub fn stream_logcat(cache_dir: &Path, filters: &LogFilters, cursor: Option<u64>
         if let Ok(v) = load_inv_pid(cache_dir) {
             if let Some(list) = v.get(&pid) {
                 hint_offsets = Some(match hint_offsets {
-                    Some(mut a) => {
+                    Some(a) => {
                         // intersect two sorted lists (they are in order as we scanned forward)
                         let b = list; let mut i=0usize; let mut j=0usize; let mut out=Vec::new();
                         while i < a.len() && j < b.len() { if a[i] == b[j] { out.push(a[i]); i+=1; j+=1; } else if a[i] < b[j] { i+=1; } else { j+=1; } }

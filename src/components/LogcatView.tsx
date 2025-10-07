@@ -23,9 +23,9 @@ export default function LogcatView() {
   const [rows, setRows] = useState<LogRow[]>([]);
   const [cursor, setCursor] = useState<number | undefined>(undefined);
   const [batch] = useState(1000); // internal chunk size for smooth loading
-  const [hasMore, setHasMore] = useState(true);
   const [fileSize, setFileSize] = useState<number>(0);
   const [totalRows, setTotalRows] = useState<number | undefined>(undefined);
+  const reqRef = useRef(0);
   const [loading, setLoading] = useState(false);
   const [auto, setAuto] = useState(true);
   const [wrap, setWrap] = useState(false);
@@ -34,32 +34,34 @@ export default function LogcatView() {
     try { localStorage.setItem("lm.log.filters", JSON.stringify(filters)); } catch {}
   }, [filters]);
 
-  const loadMore = useCallback(async (): Promise<boolean> => {
-    if (loading || !hasMore) return false;
-    setLoading(true);
-    try {
-      const res = await invoke<LogStreamResp>("query_logcat_stream", { filters, cursor, limit: batch });
-      setRows((prev) => prev.concat(res.rows));
-      setCursor(res.nextCursor);
-      const more = !res.exhausted && res.rows.length > 0;
-      setHasMore(more);
-      if (res.fileSize) setFileSize(res.fileSize);
-      if (typeof res.totalRows === "number") setTotalRows(res.totalRows);
-      return more;
-    } finally {
-      setLoading(false);
-    }
-  }, [filters, cursor, batch, loading, hasMore]);
+  
 
   const debouncedReset = useDebouncedCallback(() => {
+    const myId = ++(reqRef.current);
     setRows([]);
     setCursor(undefined);
-    setHasMore(true);
+    // start fresh
+    setTotalRows(undefined);
+    setLoading(true);
     (async () => {
-      // always load from start to end once
-      while (await loadMore()) {
+      let cur: number | undefined = undefined;
+      let loaded = 0;
+      while (true) {
+        const res: LogStreamResp = await invoke<LogStreamResp>("query_logcat_stream", { filters, cursor: cur, limit: batch });
+        if (reqRef.current !== myId) return;
+        if (res.fileSize) setFileSize(res.fileSize);
+        setRows((prev) => {
+          const merged = prev.concat(res.rows);
+          loaded = merged.length;
+          return merged;
+        });
+        cur = res.nextCursor;
+        setCursor(res.nextCursor);
+        const more = !res.exhausted && res.rows.length > 0;
+        if (!more) { setTotalRows(loaded); break; }
         await new Promise((r) => setTimeout(r, 0));
       }
+      setLoading(false);
     })();
   }, 400);
   useEffect(() => { if (auto) debouncedReset(); }, [filters, batch, auto]);
@@ -91,15 +93,11 @@ export default function LogcatView() {
     const handler = (e: Event) => {
       const ce = e as CustomEvent<Partial<LogFilters>>;
       setFilters((f) => ({ ...f, ...(ce.detail || {}) }));
-      setRows([]);
-      setCursor(undefined);
-      setHasMore(true);
-      // next tick to ensure filters updated
-      setTimeout(() => { loadMore(); }, 0);
+      setTimeout(() => { debouncedReset(); }, 0);
     };
     window.addEventListener("lm:logcat:apply", handler as EventListener);
     return () => window.removeEventListener("lm:logcat:apply", handler as EventListener);
-  }, [loadMore]);
+  }, [debouncedReset]);
 
   return (
     <section style={{ marginTop: 8 }}>
@@ -165,8 +163,8 @@ export default function LogcatView() {
             <div className="progress" style={{ flex: 1 }}>
               <div className="progress-bar" style={{ width: `${Math.min(100, (cursor ?? 0) / fileSize * 100).toFixed(1)}%` }} />
             </div>
-            <div className="muted" style={{ minWidth: 140, textAlign: "right" }}>
-              {totalRows ? `${rows.length}/${totalRows} rows` : `${rows.length} rows`} · {((cursor ?? 0) / Math.max(1, fileSize) * 100).toFixed(1)}%
+            <div className="muted" style={{ minWidth: 180, textAlign: "right" }}>
+              {typeof totalRows === 'number' ? `${rows.length}/${totalRows} rows` : `${rows.length} rows`} · {((cursor ?? 0) / Math.max(1, fileSize) * 100).toFixed(1)}%
             </div>
           </div>
         )}

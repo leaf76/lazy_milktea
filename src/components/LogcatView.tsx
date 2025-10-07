@@ -24,6 +24,8 @@ export default function LogcatView() {
   const [cursor, setCursor] = useState<number | undefined>(undefined);
   const [batch] = useState(1000); // internal chunk size for smooth loading
   const [hasMore, setHasMore] = useState(true);
+  const [fileSize, setFileSize] = useState<number>(0);
+  const [totalRows, setTotalRows] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [auto, setAuto] = useState(true);
   const [wrap, setWrap] = useState(false);
@@ -41,6 +43,8 @@ export default function LogcatView() {
       setCursor(res.nextCursor);
       const more = !res.exhausted && res.rows.length > 0;
       setHasMore(more);
+      if (res.fileSize) setFileSize(res.fileSize);
+      if (typeof res.totalRows === "number") setTotalRows(res.totalRows);
       return more;
     } finally {
       setLoading(false);
@@ -156,6 +160,16 @@ export default function LogcatView() {
       </div>
 
       <div className="card log-view" style={{ marginTop: 8, height: 420 }}>
+        {(fileSize > 0) && (
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+            <div className="progress" style={{ flex: 1 }}>
+              <div className="progress-bar" style={{ width: `${Math.min(100, (cursor ?? 0) / fileSize * 100).toFixed(1)}%` }} />
+            </div>
+            <div className="muted" style={{ minWidth: 140, textAlign: "right" }}>
+              {totalRows ? `${rows.length}/${totalRows} rows` : `${rows.length} rows`} · {((cursor ?? 0) / Math.max(1, fileSize) * 100).toFixed(1)}%
+            </div>
+          </div>
+        )}
         <Virtuoso
           totalCount={rows.length}
           itemContent={(index) => {

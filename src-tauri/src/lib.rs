@@ -66,7 +66,7 @@ async fn query_logcat(
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
-struct StreamResp { rows: Vec<types::LogRow>, next_cursor: u64, exhausted: bool }
+struct StreamResp { rows: Vec<types::LogRow>, next_cursor: u64, exhausted: bool, file_size: u64, total_rows: Option<usize> }
 
 #[tauri::command]
 async fn query_logcat_stream(
@@ -83,7 +83,7 @@ async fn query_logcat_stream(
         .ok_or_else(|| "No cache yet. Please parse a bugreport first.".to_string())?;
     let res = parser::stream_logcat(&cache_dir, &filters, cursor, (limit as usize).max(1))
         .map_err(|e| e.to_string())?;
-    Ok(StreamResp { rows: res.rows, next_cursor: res.next_cursor, exhausted: res.exhausted })
+    Ok(StreamResp { rows: res.rows, next_cursor: res.next_cursor, exhausted: res.exhausted, file_size: res.file_size, total_rows: res.total_rows })
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

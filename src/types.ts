@@ -48,4 +48,6 @@ export type LogStreamResp = {
   rows: LogRow[];
   nextCursor: number;
   exhausted: boolean;
+  fileSize: number;
+  totalRows?: number;
 };

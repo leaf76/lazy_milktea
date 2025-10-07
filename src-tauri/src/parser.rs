@@ -526,11 +526,21 @@ fn seek_offset_for_ts(cache_dir: &Path, ts_from: &str) -> Option<u64> {
     if lo >= idx.len() { Some(idx.last().map(|e| e.offset).unwrap_or(0)) } else { Some(idx[lo].offset) }
 }
 
-pub struct StreamResult { pub rows: Vec<LogRow>, pub next_cursor: u64, pub exhausted: bool }
+pub struct StreamResult {
+    pub rows: Vec<LogRow>,
+    pub next_cursor: u64,
+    pub exhausted: bool,
+    pub file_size: u64,
+    pub total_rows: Option<usize>,
+}
 
 pub fn stream_logcat(cache_dir: &Path, filters: &LogFilters, cursor: Option<u64>, limit: usize) -> Result<StreamResult> {
     let path = cache_dir.join("logcat.jsonl");
     let mut f = File::open(&path).with_context(|| format!("open logcat index: {}", path.display()))?;
+    let file_size = std::fs::metadata(&path).map(|m| m.len()).unwrap_or(0);
+    let total_rows = std::fs::read(cache_dir.join("log_summary.json")).ok()
+        .and_then(|b| serde_json::from_slice::<LogIndexSummary>(&b).ok())
+        .map(|s| s.total_rows);
     let base_offset = if let Some(c) = cursor { c } else if let Some(ref tsf) = filters.ts_from { seek_offset_for_ts(cache_dir, tsf).unwrap_or(0) } else { 0 };
 
     // hint from inverted index if tag/pid present
@@ -602,7 +612,7 @@ pub fn stream_logcat(cache_dir: &Path, filters: &LogFilters, cursor: Option<u64>
     }
     // mark exhausted if at EOF
     let exhausted = out.is_empty() && reader.fill_buf()?.is_empty();
-    Ok(StreamResult { rows: out, next_cursor, exhausted })
+    Ok(StreamResult { rows: out, next_cursor, exhausted, file_size, total_rows })
 }
 
 fn load_inv_tag(cache_dir: &Path) -> Result<HashMap<String, Vec<u64>>> {

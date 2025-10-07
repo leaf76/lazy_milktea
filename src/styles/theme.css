@@ -203,6 +203,13 @@ body {
 .log-col-level { min-width: 16px; text-align: left; }
 .log-col-tag { color: var(--primary); cursor: pointer; }
 .log-col-msg { color: var(--text); white-space: pre; }
+
+.progress {
+  width: 100%; height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; border: 1px solid var(--border);
+}
+.progress-bar {
+  height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-2)); box-shadow: 0 0 12px rgba(34,211,238,0.35);
+}
 .log-tag { color: var(--primary); margin-right: 6px; cursor: pointer; }
 .log-pid { color: #a3a3a3; margin-right: 6px; cursor: pointer; }
 .log-timestamp { color: #94a3b8; margin-right: 8px; }

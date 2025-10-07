@@ -41,7 +41,11 @@ export type LogFilters = {
   levels?: string[];
   tag?: string;
   pid?: number;
+  tid?: number;
   text?: string;
+  notText?: string;
+  textMode?: "plain" | "regex";
+  caseSensitive?: boolean;
 };
 
 export type LogStreamResp = {

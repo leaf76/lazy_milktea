@@ -54,5 +54,9 @@ pub struct LogFilters {
     pub levels: Option<Vec<String>>, // ["E","F"] etc.
     pub tag: Option<String>,
     pub pid: Option<i32>,
+    pub tid: Option<i32>,
     pub text: Option<String>,
+    pub not_text: Option<String>,
+    pub text_mode: Option<String>,      // "plain" | "regex"
+    pub case_sensitive: Option<bool>,
 }

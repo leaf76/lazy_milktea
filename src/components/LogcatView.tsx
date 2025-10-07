@@ -89,14 +89,30 @@ export default function LogcatView() {
   const highlight = useCallback((text: string) => {
     const q = filters.text?.trim();
     if (!q) return <span className="log-msg">{text}</span>;
-    const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "ig");
+    if (filters.textMode === "regex") {
+      try {
+        const re = new RegExp(q, filters.caseSensitive ? "g" : "gi");
+        const parts = text.split(re);
+        const matches = text.match(re) || [];
+        const out: JSX.Element[] = [];
+        for (let i = 0; i < parts.length; i++) {
+          out.push(<span key={`p${i}`}>{parts[i]}</span>);
+          if (i < matches.length) out.push(<span key={`m${i}`} className="hi">{matches[i]}</span>);
+        }
+        return <span className="log-msg">{out}</span>;
+      } catch {
+        // fallback to plain
+      }
+    }
+    const esc = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const re = new RegExp(`(${esc})`, filters.caseSensitive ? "g" : "gi");
     const parts = text.split(re);
     return (
       <span className="log-msg">
         {parts.map((p, i) => (re.test(p) ? <span key={i} className="hi">{p}</span> : <span key={i}>{p}</span>))}
       </span>
     );
-  }, [filters.text]);
+  }, [filters.text, filters.textMode, filters.caseSensitive]);
 
   const setTag = (tag?: string) => setFilters((f) => ({ ...f, tag }));
   const setPid = (pid?: number) => setFilters((f) => ({ ...f, pid }));
@@ -158,7 +174,9 @@ export default function LogcatView() {
         <div className="toolbar-row">
           <input className="input" placeholder="Tag contains" value={filters.tag ?? ""} onChange={(e) => setFilters((f) => ({ ...f, tag: e.currentTarget.value || undefined }))} />
           <input className="input" placeholder="PID" value={filters.pid ?? ""} onChange={(e) => setFilters((f) => ({ ...f, pid: e.currentTarget.value ? Number(e.currentTarget.value) : undefined }))} />
+          <input className="input" placeholder="TID" value={filters.tid ?? ""} onChange={(e) => setFilters((f) => ({ ...f, tid: e.currentTarget.value ? Number(e.currentTarget.value) : undefined }))} />
           <input className="input" placeholder="Text contains" value={filters.text ?? ""} onChange={(e) => setFilters((f) => ({ ...f, text: e.currentTarget.value || undefined }))} />
+          <input className="input" placeholder="Text exclude" value={filters.notText ?? ""} onChange={(e) => setFilters((f) => ({ ...f, notText: e.currentTarget.value || undefined }))} />
           <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
             <button className="btn btn-ghost" type="button" onClick={() => levelQuick("E")}>E</button>
             <button className="btn btn-ghost" type="button" onClick={() => levelQuick("WE")}>W+E</button>
@@ -166,6 +184,14 @@ export default function LogcatView() {
             <button className="btn btn-ghost" type="button" onClick={() => levelQuick("ALL")}>All</button>
             <button className="btn btn-ghost" type="button" onClick={() => setTag("ActivityManager")}>AM</button>
             <button className="btn btn-ghost" type="button" onClick={() => { setTag(undefined); setPid(undefined); setFilters((f) => ({ ...f, levels: ["E","F"], text: undefined })); }}>E/F only</button>
+          </div>
+          <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <input type="checkbox" checked={filters.textMode === "regex"} onChange={(e) => setFilters((f) => ({ ...f, textMode: e.currentTarget.checked ? "regex" : "plain" }))} /> Regex
+            </label>
+            <label style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              <input type="checkbox" checked={!!filters.caseSensitive} onChange={(e) => setFilters((f) => ({ ...f, caseSensitive: e.currentTarget.checked || undefined }))} /> Case
+            </label>
           </div>
         </div>
       </div>
@@ -177,11 +203,23 @@ export default function LogcatView() {
         {typeof filters.pid === "number" && (
           <span className="chip">pid: {filters.pid} <span className="x" onClick={() => setPid(undefined)}>✕</span></span>
         )}
+        {typeof filters.tid === "number" && (
+          <span className="chip">tid: {filters.tid} <span className="x" onClick={() => setFilters((f) => ({ ...f, tid: undefined }))}>✕</span></span>
+        )}
         {filters.levels && (
           <span className="chip">levels: {filters.levels.join(",")} <span className="x" onClick={() => setFilters((f) => ({ ...f, levels: undefined }))}>✕</span></span>
         )}
         {filters.text && (
           <span className="chip">text: {filters.text} <span className="x" onClick={() => setFilters((f) => ({ ...f, text: undefined }))}>✕</span></span>
+        )}
+        {filters.notText && (
+          <span className="chip">not: {filters.notText} <span className="x" onClick={() => setFilters((f) => ({ ...f, notText: undefined }))}>✕</span></span>
+        )}
+        {(filters.textMode === "regex") && (
+          <span className="chip">regex <span className="x" onClick={() => setFilters((f) => ({ ...f, textMode: "plain" }))}>✕</span></span>
+        )}
+        {filters.caseSensitive && (
+          <span className="chip">case <span className="x" onClick={() => setFilters((f) => ({ ...f, caseSensitive: undefined }))}>✕</span></span>
         )}
         {filters.tsFrom && (
           <span className="chip">from: {filters.tsFrom} <span className="x" onClick={() => setFilters((f) => ({ ...f, tsFrom: undefined }))}>✕</span></span>
@@ -189,7 +227,7 @@ export default function LogcatView() {
         {filters.tsTo && (
           <span className="chip">to: {filters.tsTo} <span className="x" onClick={() => setFilters((f) => ({ ...f, tsTo: undefined }))}>✕</span></span>
         )}
-        {(filters.tag || filters.pid || filters.levels || filters.text || filters.tsFrom || filters.tsTo) && (
+        {(filters.tag || filters.pid || filters.tid || filters.levels || filters.text || filters.notText || filters.tsFrom || filters.tsTo || filters.textMode === "regex" || filters.caseSensitive) && (
           <button className="btn" onClick={() => setFilters({})}>Clear</button>
         )}
       </div>

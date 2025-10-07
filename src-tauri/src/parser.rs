@@ -1,4 +1,5 @@
 use crate::types::{DeviceInfo, LogFilters, LogRow};
+use regex::{Regex, RegexBuilder};
 use anyhow::{anyhow, Context, Result};
 use dirs::home_dir;
 use chrono::{DateTime, Local, Utc, Datelike, NaiveDate, NaiveTime, NaiveDateTime};
@@ -404,7 +405,17 @@ pub fn query_logcat(cache_dir: &Path, filters: &LogFilters, page: usize, page_si
         .map(|v| v.iter().map(|s| s.to_string()).collect());
     let tag_q = filters.tag.as_deref();
     let text_q = filters.text.as_deref();
+    let not_text_q = filters.not_text.as_deref();
     let pid_q = filters.pid;
+    let tid_q = filters.tid;
+    let case_sensitive = filters.case_sensitive.unwrap_or(false);
+    let text_mode = filters.text_mode.as_deref().unwrap_or("plain");
+    let text_re: Option<Regex> = if text_mode == "regex" {
+        text_q.and_then(|p| RegexBuilder::new(p).case_insensitive(!case_sensitive).build().ok())
+    } else { None };
+    let not_text_re: Option<Regex> = if text_mode == "regex" {
+        not_text_q.and_then(|p| RegexBuilder::new(p).case_insensitive(!case_sensitive).build().ok())
+    } else { None };
     let ts_from_key = filters
         .ts_from
         .as_deref()
@@ -437,8 +448,26 @@ pub fn query_logcat(cache_dir: &Path, filters: &LogFilters, page: usize, page_si
             if let Some(pid) = pid_q {
                 ok &= row.pid == pid;
             }
+            if let Some(tid) = tid_q {
+                ok &= row.tid == tid;
+            }
             if let Some(text) = text_q {
-                ok &= row.msg.contains(text);
+                if text_mode == "regex" {
+                    if let Some(re) = &text_re { ok &= re.is_match(&row.msg); }
+                } else if case_sensitive {
+                    ok &= row.msg.contains(text);
+                } else {
+                    ok &= row.msg.to_lowercase().contains(&text.to_lowercase());
+                }
+            }
+            if let Some(neg) = not_text_q {
+                if text_mode == "regex" {
+                    if let Some(re) = &not_text_re { ok &= !re.is_match(&row.msg); }
+                } else if case_sensitive {
+                    ok &= !row.msg.contains(neg);
+                } else {
+                    ok &= !row.msg.to_lowercase().contains(&neg.to_lowercase());
+                }
             }
 
             if ok {
@@ -589,7 +618,17 @@ pub fn stream_logcat(cache_dir: &Path, filters: &LogFilters, cursor: Option<u64>
         .map(|v| v.iter().map(|s| s.to_string()).collect());
     let tag_q = filters.tag.as_deref();
     let text_q = filters.text.as_deref();
+    let not_text_q = filters.not_text.as_deref();
     let pid_q = filters.pid;
+    let tid_q = filters.tid;
+    let case_sensitive = filters.case_sensitive.unwrap_or(false);
+    let text_mode = filters.text_mode.as_deref().unwrap_or("plain");
+    let text_re: Option<Regex> = if text_mode == "regex" {
+        text_q.and_then(|p| RegexBuilder::new(p).case_insensitive(!case_sensitive).build().ok())
+    } else { None };
+    let not_text_re: Option<Regex> = if text_mode == "regex" {
+        not_text_q.and_then(|p| RegexBuilder::new(p).case_insensitive(!case_sensitive).build().ok())
+    } else { None };
     let ts_to_key = filters.ts_to.as_deref().and_then(|s| {
         if s.contains('T') { iso_ts_key_ms(s).ok() } else { threadtime_ts_key(s).ok() }
     });
@@ -610,7 +649,25 @@ pub fn stream_logcat(cache_dir: &Path, filters: &LogFilters, cursor: Option<u64>
             if let Some(levels) = &levels_set { ok &= levels.contains(&row.level); }
             if let Some(tag) = tag_q { ok &= row.tag.contains(tag); }
             if let Some(pid) = pid_q { ok &= row.pid == pid; }
-            if let Some(text) = text_q { ok &= row.msg.contains(text); }
+            if let Some(tid) = tid_q { ok &= row.tid == tid; }
+            if let Some(text) = text_q {
+                if text_mode == "regex" {
+                    if let Some(re) = &text_re { ok &= re.is_match(&row.msg); }
+                } else if case_sensitive {
+                    ok &= row.msg.contains(text);
+                } else {
+                    ok &= row.msg.to_lowercase().contains(&text.to_lowercase());
+                }
+            }
+            if let Some(neg) = not_text_q {
+                if text_mode == "regex" {
+                    if let Some(re) = &not_text_re { ok &= !re.is_match(&row.msg); }
+                } else if case_sensitive {
+                    ok &= !row.msg.contains(neg);
+                } else {
+                    ok &= !row.msg.to_lowercase().contains(&neg.to_lowercase());
+                }
+            }
             if ok {
                 out.push(row);
                 if out.len() >= limit { break; }
@@ -679,17 +736,37 @@ ANR in com.example.app (pid 1234)
         assert!(sum.ef_total >= 1);
 
         // query E level only
-        let filters = LogFilters {
-            ts_from: None,
-            ts_to: None,
-            levels: Some(vec!["E".into()]),
-            tag: None,
-            pid: None,
-            text: None,
-        };
+        let filters = LogFilters { levels: Some(vec!["E".into()]), ..Default::default() };
         let rows = query_logcat(&tmp, &filters, 0, 100).unwrap();
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0].level, "E");
         assert!(rows[0].tag.contains("ActivityManager"));
+    }
+
+    #[test]
+    fn logcat_additional_filters_tid_and_exclude() {
+        let sample = r#"
+08-24 14:22:33.000  1000  2000 I TagA: hello apple
+08-24 14:22:34.000  1000  2001 I TagA: hello banana
+08-24 14:22:35.000  1001  2000 I TagB: HELLO CHERRY
+"#;
+        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let tmp = std::env::temp_dir().join(format!("lm_idx2_{}", nanos));
+        std::fs::create_dir_all(&tmp).unwrap();
+        let _ = index_logcat_from_text(sample, &tmp).unwrap();
+
+        // filter by tid
+        let rows_tid = query_logcat(&tmp, &LogFilters { tid: Some(2001), ..Default::default() }, 0, 100).unwrap();
+        assert_eq!(rows_tid.len(), 1);
+        assert!(rows_tid[0].msg.contains("banana"));
+
+        // include text (case-insensitive) and exclude another
+        let rows_text = query_logcat(&tmp, &LogFilters { text: Some("hello".into()), not_text: Some("banana".into()), ..Default::default() }, 0, 100).unwrap();
+        assert_eq!(rows_text.len(), 2); // apple, CHERRY
+
+        // regex case-sensitive match should only catch HELLO
+        let rows_regex = query_logcat(&tmp, &LogFilters { text: Some("HELLO".into()), text_mode: Some("regex".into()), case_sensitive: Some(true), ..Default::default() }, 0, 100).unwrap();
+        assert_eq!(rows_regex.len(), 1);
+        assert!(rows_regex[0].msg.contains("CHERRY"));
     }
 }

@@ -1,0 +1,205 @@
+/* LogcatView.module.css */
+.toolbar {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-3);
+  align-items: end;
+}
+
+.toolbarRow {
+  grid-column: 1 / -1;
+  display: contents; /* Use subgrid-like behavior */
+}
+
+.filterGroup {
+  display: contents;
+}
+
+.mainControls {
+  grid-column: span 8;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.timeRange {
+  grid-column: span 4;
+  display: contents;
+}
+
+.searchControls {
+  grid-column: span 4;
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-start;
+}
+
+.viewOptions {
+  grid-column: span 4;
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.input, .dtInput {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  transition: 150ms ease;
+}
+.dtInput {
+  height: 40px;
+}
+.input:focus, .dtInput:focus {
+  outline: none;
+  border-color: rgba(34,211,238,0.5);
+  box-shadow: 0 0 0 3px rgba(34,211,238,0.2);
+}
+
+.label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: 150ms ease;
+}
+.label:hover {
+  color: var(--text);
+}
+
+.chipBar {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(34,211,238,0.08);
+  font-size: 12px;
+  color: var(--text);
+}
+
+.chip .x {
+  cursor: pointer;
+  color: var(--muted);
+  transition: 150ms ease;
+}
+.chip .x:hover {
+  color: var(--primary);
+}
+
+.clearBtn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 12px;
+  transition: 150ms ease;
+}
+.clearBtn:hover {
+  color: var(--text);
+  background: rgba(255,255,255,0.05);
+}
+
+.logView {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  user-select: text;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden; /* To ensure child border-radius is clipped */
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  box-shadow: var(--shadow);
+}
+
+.logHeader {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.15fr) minmax(100px, 0.1fr) 40px minmax(180px, 0.2fr) 1fr;
+  column-gap: 12px;
+  align-items: center;
+  padding: 8px 16px;
+  font-weight: 600;
+  color: var(--muted);
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.logRow {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.15fr) minmax(100px, 0.1fr) 40px minmax(180px, 0.2fr) 1fr;
+  column-gap: 12px;
+  align-items: baseline;
+  padding: 6px 16px;
+  line-height: 1.4;
+  border-bottom: 1px dashed rgba(255,255,255,0.05);
+  transition: background-color 150ms ease;
+}
+.logRow:hover {
+  background: rgba(34,211,238,0.05);
+}
+
+.logColTs { color: #94a3b8; }
+.logColPid { color: #a3a3a3; cursor: pointer; }
+.logColLevel { min-width: 16px; text-align: center; }
+.logColTag { color: var(--primary); cursor: pointer; }
+.logColMsg { color: var(--text); }
+
+.hi {
+  background: rgba(232,121,249,0.25);
+  border-radius: 4px;
+  padding: 0 2px;
+}
+
+.progressContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 var(--space-4) var(--space-2);
+}
+
+.progress {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--primary-2));
+  box-shadow: 0 0 12px rgba(34,211,238,0.35);
+}
+
+.statusText {
+  min-width: 180px;
+  text-align: right;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.noResults {
+  color: var(--muted);
+  padding: var(--space-8);
+  text-align: center;
+}

@@ -193,39 +193,3 @@ body {
 .level-W { color: var(--warn); }
 .level-E { color: var(--error); }
 .level-F { color: #ef4444; font-weight: 600; text-shadow: 0 0 10px rgba(239,68,68,0.35); }
-
-.log-row { padding: 4px 8px; border-bottom: 1px dashed rgba(255,255,255,0.05); }
-.log-row:hover { background: rgba(34,211,238,0.05); }
-.log-view { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; user-select: text; }
-.log-grid { display: grid; grid-template-columns: 180px 120px 30px 220px 1fr; column-gap: 12px; align-items: baseline; }
-.log-col-ts { color: #94a3b8; }
-.log-col-pid { color: #a3a3a3; }
-.log-col-level { min-width: 16px; text-align: left; }
-.log-col-tag { color: var(--primary); cursor: pointer; }
-.log-col-msg { color: var(--text); white-space: pre; }
-
-.progress {
-  width: 100%; height: 8px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; border: 1px solid var(--border);
-}
-.progress-bar {
-  height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-2)); box-shadow: 0 0 12px rgba(34,211,238,0.35);
-}
-.log-tag { color: var(--primary); margin-right: 6px; cursor: pointer; }
-.log-pid { color: #a3a3a3; margin-right: 6px; cursor: pointer; }
-.log-timestamp { color: #94a3b8; margin-right: 8px; }
-.log-msg { color: var(--text); }
-.hi { background: rgba(232,121,249,0.25); border-radius: 4px; padding: 0 2px; }
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 6px 10px;
-  background: rgba(34,211,238,0.08);
-}
-.chip .x { cursor: pointer; color: var(--muted); }
-.chipbar { display: flex; gap: 8px; flex-wrap: wrap; }
-
-.btn-ghost { background: transparent; border-color: rgba(255,255,255,0.12); }

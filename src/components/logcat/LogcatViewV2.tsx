@@ -174,12 +174,9 @@ export default function LogcatViewV2() {
   useEffect(() => {
     if (tagChips.length === 0) {
       setFilters((f) => ({ ...f, tag: undefined }));
-    } else if (tagChips.length === 1) {
-      setFilters((f) => ({ ...f, tag: tagChips[0] }));
     } else {
-      // Multiple chips: combine with OR logic using |
-      const pattern = tagChips.map((chip) => escapeRegex(chip)).join("|");
-      setFilters((f) => ({ ...f, tag: pattern }));
+      // Join with | for OR logic (backend handles the split)
+      setFilters((f) => ({ ...f, tag: tagChips.join("|") }));
     }
   }, [tagChips]);
 

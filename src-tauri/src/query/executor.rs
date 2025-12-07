@@ -96,10 +96,19 @@ impl QueryExecutor {
             }
         }
 
-        // Tag filter (parameterized substring match)
+        // Tag filter (parameterized substring match, supports OR with |)
         if let Some(ref tag) = filters.tag {
-            conditions.push("tag LIKE ?".to_string());
-            params.push(Box::new(format!("%{}%", tag)));
+            let tags: Vec<&str> = tag.split('|').map(|t| t.trim()).filter(|t| !t.is_empty()).collect();
+            if tags.len() == 1 {
+                conditions.push("tag LIKE ?".to_string());
+                params.push(Box::new(format!("%{}%", tags[0])));
+            } else if tags.len() > 1 {
+                let placeholders: Vec<&str> = tags.iter().map(|_| "tag LIKE ?").collect();
+                conditions.push(format!("({})", placeholders.join(" OR ")));
+                for t in tags {
+                    params.push(Box::new(format!("%{}%", t)));
+                }
+            }
         }
 
         // PID filter (parameterized)

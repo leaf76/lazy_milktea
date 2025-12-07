@@ -521,44 +521,50 @@ export default function LogcatViewV2() {
 
           <div className={styles.filterGroupSmall}>
             <label className={styles.filterLabel}>PID</label>
-            <input
-              className={styles.filterInput}
-              placeholder="1234"
-              value={localPid}
-              onChange={(e) => {
-                const val = e.target.value;
-                setLocalPid(val);
-                debouncedSyncPid(val);
-              }}
-            />
+            <div className={styles.chipsInput}>
+              <input
+                className={styles.chipInput}
+                placeholder="1234"
+                value={localPid}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLocalPid(val);
+                  debouncedSyncPid(val);
+                }}
+              />
+            </div>
           </div>
 
           <div className={styles.filterGroupSmall}>
             <label className={styles.filterLabel}>TID</label>
-            <input
-              className={styles.filterInput}
-              placeholder="5678"
-              value={localTid}
-              onChange={(e) => {
-                const val = e.target.value;
-                setLocalTid(val);
-                debouncedSyncTid(val);
-              }}
-            />
+            <div className={styles.chipsInput}>
+              <input
+                className={styles.chipInput}
+                placeholder="5678"
+                value={localTid}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLocalTid(val);
+                  debouncedSyncTid(val);
+                }}
+              />
+            </div>
           </div>
 
           <div className={styles.filterGroup}>
             <label className={styles.filterLabel}>Exclude</label>
-            <input
-              className={styles.filterInput}
-              placeholder="Noise text..."
-              value={localNotText}
-              onChange={(e) => {
-                const val = e.target.value;
-                setLocalNotText(val);
-                debouncedSyncNotText(val);
-              }}
-            />
+            <div className={styles.chipsInput}>
+              <input
+                className={styles.chipInput}
+                placeholder="Noise text..."
+                value={localNotText}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setLocalNotText(val);
+                  debouncedSyncNotText(val);
+                }}
+              />
+            </div>
           </div>
         </div>
 

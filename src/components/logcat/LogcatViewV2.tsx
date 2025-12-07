@@ -49,8 +49,11 @@ export default function LogcatViewV2() {
   const [textChips, setTextChips] = useState<string[]>([]);
   const [textInput, setTextInput] = useState("");
 
+  // Tag filter chips state
+  const [tagChips, setTagChips] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+
   // Local state for debounced inputs (prevents re-render lag during typing)
-  const [localTag, setLocalTag] = useState(filters.tag ?? "");
   const [localPid, setLocalPid] = useState(filters.pid?.toString() ?? "");
   const [localTid, setLocalTid] = useState(filters.tid?.toString() ?? "");
   const [localNotText, setLocalNotText] = useState(filters.notText ?? "");
@@ -85,10 +88,6 @@ export default function LogcatViewV2() {
   }, 400);
 
   // Debounced sync from local input state to filters
-  const debouncedSyncTag = useDebouncedCallback((val: string) => {
-    setFilters((f) => ({ ...f, tag: val || undefined }));
-  }, 300);
-
   const debouncedSyncPid = useDebouncedCallback((val: string) => {
     setFilters((f) => ({ ...f, pid: val ? Number(val) : undefined }));
   }, 300);
@@ -106,11 +105,7 @@ export default function LogcatViewV2() {
     debouncedLoadInitial();
   }, [filters, debouncedLoadInitial]);
 
-  // Sync local state when filters change externally (e.g., clear all, click tag)
-  useEffect(() => {
-    setLocalTag(filters.tag ?? "");
-  }, [filters.tag]);
-
+  // Sync local state when filters change externally (e.g., clear all, click tag/pid)
   useEffect(() => {
     setLocalPid(filters.pid?.toString() ?? "");
   }, [filters.pid]);
@@ -133,7 +128,6 @@ export default function LogcatViewV2() {
     return () => window.removeEventListener("lm:logcat:apply", handler as EventListener);
   }, []);
 
-  const setTag = (tag?: string) => setFilters((f) => ({ ...f, tag }));
   const setPid = (pid?: number) => setFilters((f) => ({ ...f, pid }));
 
   // Escape special regex characters for plain text search
@@ -174,6 +168,45 @@ export default function LogcatViewV2() {
   // Remove a specific text chip
   const removeTextChip = (chipToRemove: string) => {
     setTextChips(textChips.filter((chip) => chip !== chipToRemove));
+  };
+
+  // Sync tag chips to filters.tag (OR logic with |)
+  useEffect(() => {
+    if (tagChips.length === 0) {
+      setFilters((f) => ({ ...f, tag: undefined }));
+    } else if (tagChips.length === 1) {
+      setFilters((f) => ({ ...f, tag: tagChips[0] }));
+    } else {
+      // Multiple chips: combine with OR logic using |
+      const pattern = tagChips.map((chip) => escapeRegex(chip)).join("|");
+      setFilters((f) => ({ ...f, tag: pattern }));
+    }
+  }, [tagChips]);
+
+  // Add tag chip on Enter
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && tagInput.trim()) {
+      e.preventDefault();
+      const newChip = tagInput.trim();
+      if (!tagChips.includes(newChip)) {
+        setTagChips([...tagChips, newChip]);
+      }
+      setTagInput("");
+    } else if (e.key === "Backspace" && !tagInput && tagChips.length > 0) {
+      setTagChips(tagChips.slice(0, -1));
+    }
+  };
+
+  // Remove a specific tag chip
+  const removeTagChip = (chipToRemove: string) => {
+    setTagChips(tagChips.filter((chip) => chip !== chipToRemove));
+  };
+
+  // Add tag from clicking on a log row
+  const addTagChip = (tag: string) => {
+    if (!tagChips.includes(tag)) {
+      setTagChips([...tagChips, tag]);
+    }
   };
 
   const toggleLevel = (level: LogLevel) => {
@@ -299,7 +332,7 @@ export default function LogcatViewV2() {
           <div className={styles.cellLevel}>
             <span className={`${styles.levelBadge} ${styles[r.level]}`}>{r.level}</span>
           </div>
-          <div className={styles.cellTag} onClick={() => setTag(r.tag)} title="Filter by Tag">
+          <div className={styles.cellTag} onClick={() => addTagChip(r.tag)} title="Filter by Tag">
             {r.tag}
           </div>
           <div className={`${styles.cellMsg} ${wrap ? styles.wrap : styles.nowrap}`}>
@@ -469,16 +502,21 @@ export default function LogcatViewV2() {
 
           <div className={styles.filterGroup}>
             <label className={styles.filterLabel}>Tag</label>
-            <input
-              className={styles.filterInput}
-              placeholder="ActivityManager"
-              value={localTag}
-              onChange={(e) => {
-                const val = e.target.value;
-                setLocalTag(val);
-                debouncedSyncTag(val);
-              }}
-            />
+            <div className={styles.chipsInput}>
+              {tagChips.map((chip, idx) => (
+                <span key={idx} className={styles.chip}>
+                  {chip}
+                  <span className={styles.chipRemove} onClick={() => removeTagChip(chip)}>×</span>
+                </span>
+              ))}
+              <input
+                className={styles.chipInput}
+                placeholder={tagChips.length === 0 ? "ActivityManager..." : ""}
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={handleTagInputKeyDown}
+              />
+            </div>
           </div>
 
           <div className={styles.filterGroupSmall}>

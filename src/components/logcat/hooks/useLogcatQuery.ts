@@ -3,7 +3,16 @@ import { invoke } from "@tauri-apps/api/core";
 import type { LogRow, LogFilters, QueryResponse, QueryCursor, CursorDirection, LogcatStats } from "../../../types";
 
 const BATCH_SIZE = 500;
-const MAX_BUFFER_SIZE = 5000;
+
+// Dynamic buffer size based on total rows:
+// - < 20K rows: load all (no trimming)
+// - 20K-100K rows: keep 50% in memory
+// - > 100K rows: keep max 50K rows
+function getMaxBufferSize(totalRows: number): number {
+  if (totalRows < 20000) return Infinity;
+  if (totalRows < 100000) return Math.ceil(totalRows * 0.5);
+  return 50000;
+}
 
 interface QueryState {
   rows: LogRow[];
@@ -91,12 +100,15 @@ export function useLogcatQuery(filters: LogFilters) {
       setState((s) => {
         let newRows = [...s.rows, ...response.rows];
         let newFirstItemIndex = s.firstItemIndex;
+        let didTrim = false;
 
-        // Trim from start if buffer too large
-        if (newRows.length > MAX_BUFFER_SIZE) {
-          const excess = newRows.length - MAX_BUFFER_SIZE;
+        // Dynamic buffer management based on total rows
+        const maxBuffer = getMaxBufferSize(s.stats?.totalRows ?? newRows.length);
+        if (newRows.length > maxBuffer) {
+          const excess = newRows.length - maxBuffer;
           newRows = newRows.slice(excess);
           newFirstItemIndex += excess;
+          didTrim = true;
         }
 
         return {
@@ -104,7 +116,7 @@ export function useLogcatQuery(filters: LogFilters) {
           rows: newRows,
           nextCursor: response.nextCursor,
           hasMoreNext: response.hasMoreNext,
-          hasMorePrev: true, // We trimmed, so there's more prev
+          hasMorePrev: didTrim ? true : s.hasMorePrev,
           loadingNext: false,
           firstItemIndex: newFirstItemIndex,
         };
@@ -116,11 +128,11 @@ export function useLogcatQuery(filters: LogFilters) {
       setState((s) => ({
         ...s,
         loadingNext: false,
-        hasMoreNext: isStaleError ? false : s.hasMoreNext, // Stop trying if cursor is stale
-        error: s.rows.length > 0 ? null : errMsg, // Only show error if no data
+        hasMoreNext: isStaleError ? false : s.hasMoreNext,
+        error: s.rows.length > 0 ? null : errMsg,
       }));
     }
-  }, [filters, state.loadingNext, state.hasMoreNext, state.nextCursor]);
+  }, [filters, state.loadingNext, state.hasMoreNext, state.nextCursor, state.stats]);
 
   const loadPrev = useCallback(async () => {
     if (state.loadingPrev || !state.hasMorePrev || !state.prevCursor) return;
@@ -140,10 +152,13 @@ export function useLogcatQuery(filters: LogFilters) {
         const newRowsToAdd = [...response.rows].reverse();
         let newRows = [...newRowsToAdd, ...s.rows];
         let newFirstItemIndex = s.firstItemIndex - newRowsToAdd.length;
+        let didTrim = false;
 
-        // Trim from end if buffer too large
-        if (newRows.length > MAX_BUFFER_SIZE) {
-          newRows = newRows.slice(0, MAX_BUFFER_SIZE);
+        // Dynamic buffer management based on total rows
+        const maxBuffer = getMaxBufferSize(s.stats?.totalRows ?? newRows.length);
+        if (newRows.length > maxBuffer) {
+          newRows = newRows.slice(0, maxBuffer);
+          didTrim = true;
         }
 
         return {
@@ -151,7 +166,7 @@ export function useLogcatQuery(filters: LogFilters) {
           rows: newRows,
           prevCursor: response.prevCursor,
           hasMorePrev: response.hasMorePrev,
-          hasMoreNext: true, // We trimmed, so there's more next
+          hasMoreNext: didTrim ? true : s.hasMoreNext,
           loadingPrev: false,
           firstItemIndex: Math.max(0, newFirstItemIndex),
         };

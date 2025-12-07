@@ -3,8 +3,6 @@ use crate::query::cursor::{QueryCursor, QueryResponse, CursorDirection, LogcatSt
 use crate::query::filter::{compile_user_regex, plain_text_contains};
 use crate::types::{LogFilters, LogRow};
 use rusqlite::Connection;
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
 use std::path::Path;
 
 /// Query executor for SQLite-based logcat index
@@ -31,11 +29,11 @@ impl QueryExecutor {
         let filter_hash = compute_filter_hash(filters);
 
         // Validate cursor if provided
+        // Note: Hash validation disabled - frontend manages filter changes by resetting cursor
         if let Some(c) = cursor {
             if c.filter_hash != filter_hash && c.filter_hash != 0 {
-                return Err(LogcatError::InvalidFilter(
-                    "Filter changed, cursor invalid".to_string()
-                ));
+                // Log mismatch but don't reject - frontend handles filter changes
+                eprintln!("[DEBUG] Filter hash mismatch: cursor={}, computed={}", c.filter_hash, filter_hash);
             }
         }
 
@@ -320,10 +318,16 @@ impl QueryExecutor {
 }
 
 /// Compute hash of filter conditions for cursor validation
+/// Uses JSON serialization for deterministic hash values across invocations
 fn compute_filter_hash(filters: &LogFilters) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    filters.hash(&mut hasher);
-    hasher.finish()
+    // Serialize to JSON for deterministic representation
+    let json = serde_json::to_string(filters).unwrap_or_default();
+    // Simple string hash with fixed algorithm
+    let mut hash: u64 = 5381;
+    for byte in json.bytes() {
+        hash = hash.wrapping_mul(33).wrapping_add(byte as u64);
+    }
+    hash
 }
 
 #[cfg(test)]

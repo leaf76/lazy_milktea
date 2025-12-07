@@ -332,7 +332,7 @@ export default function LogcatViewV2() {
             <input
               type="checkbox"
               checked={wrap}
-              onChange={(e) => setWrap(e.currentTarget?.checked ?? false)}
+              onChange={(e) => setWrap(e.target.checked)}
             />
             <span>Wrap</span>
           </label>
@@ -376,7 +376,7 @@ export default function LogcatViewV2() {
                   className={styles.textChipInput}
                   placeholder={textChips.length === 0 ? "Type and press Enter..." : "Add more..."}
                   value={textInput}
-                  onChange={(e) => setTextInput(e.currentTarget?.value ?? "")}
+                  onChange={(e) => setTextInput(e.target.value)}
                   onKeyDown={handleTextInputKeyDown}
                 />
               </div>
@@ -386,7 +386,7 @@ export default function LogcatViewV2() {
                     type="checkbox"
                     checked={filters.textMode === "regex"}
                     onChange={(e) =>
-                      setFilters((f) => ({ ...f, textMode: e.currentTarget?.checked ? "regex" : "plain" }))
+                      setFilters((f) => ({ ...f, textMode: e.target.checked ? "regex" : "plain" }))
                     }
                     disabled={textChips.length > 1}
                   />
@@ -397,7 +397,7 @@ export default function LogcatViewV2() {
                     type="checkbox"
                     checked={!!filters.caseSensitive}
                     onChange={(e) =>
-                      setFilters((f) => ({ ...f, caseSensitive: e.currentTarget?.checked || undefined }))
+                      setFilters((f) => ({ ...f, caseSensitive: e.target.checked || undefined }))
                     }
                   />
                   <span>Aa</span>
@@ -433,9 +433,10 @@ export default function LogcatViewV2() {
               className={styles.filterInput}
               placeholder="ActivityManager"
               value={filters.tag ?? ""}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, tag: e.currentTarget?.value || undefined }))
-              }
+              onChange={(e) => {
+                const val = e.target.value;
+                setFilters((f) => ({ ...f, tag: val || undefined }));
+              }}
             />
           </div>
 
@@ -446,7 +447,7 @@ export default function LogcatViewV2() {
               placeholder="1234"
               value={filters.pid ?? ""}
               onChange={(e) => {
-                const val = e.currentTarget?.value;
+                const val = e.target.value;
                 setFilters((f) => ({
                   ...f,
                   pid: val ? Number(val) : undefined,
@@ -462,7 +463,7 @@ export default function LogcatViewV2() {
               placeholder="5678"
               value={filters.tid ?? ""}
               onChange={(e) => {
-                const val = e.currentTarget?.value;
+                const val = e.target.value;
                 setFilters((f) => ({
                   ...f,
                   tid: val ? Number(val) : undefined,
@@ -477,9 +478,10 @@ export default function LogcatViewV2() {
               className={styles.filterInput}
               placeholder="Noise text..."
               value={filters.notText ?? ""}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, notText: e.currentTarget?.value || undefined }))
-              }
+              onChange={(e) => {
+                const val = e.target.value;
+                setFilters((f) => ({ ...f, notText: val || undefined }));
+              }}
             />
           </div>
         </div>

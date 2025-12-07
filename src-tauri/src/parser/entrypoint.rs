@@ -80,9 +80,11 @@ fn parse_zip(path: &str, cache_dir: &Path, db_path: &Path) -> Result<ParseResult
     let mut file = archive.by_index(idx)
         .map_err(|e| LogcatError::Zip(e))?;
 
-    // Read content
-    let mut content = String::new();
-    file.read_to_string(&mut content)?;
+    // Read content as bytes first, then convert with lossy UTF-8 handling
+    // Bugreport files may contain binary data or non-UTF-8 encoded text
+    let mut bytes = Vec::new();
+    file.read_to_end(&mut bytes)?;
+    let content = String::from_utf8_lossy(&bytes).into_owned();
 
     // Extract device info
     let (device, anr_count, crash_count) = extract_device_info(&content);
@@ -101,7 +103,9 @@ fn parse_zip(path: &str, cache_dir: &Path, db_path: &Path) -> Result<ParseResult
 }
 
 fn parse_txt(path: &str, cache_dir: &Path, db_path: &Path) -> Result<ParseResult> {
-    let content = std::fs::read_to_string(path)?;
+    // Read as bytes first, then convert with lossy UTF-8 handling
+    let bytes = std::fs::read(path)?;
+    let content = String::from_utf8_lossy(&bytes).into_owned();
 
     // Extract device info
     let (device, anr_count, crash_count) = extract_device_info(&content);

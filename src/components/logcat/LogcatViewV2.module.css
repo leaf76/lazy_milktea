@@ -497,8 +497,8 @@
 
 /* DatePicker wrapper */
 .datePickerWrapper {
-  flex: 0 0 180px;
-  min-width: 0;
+  flex: 1;
+  min-width: 140px;
 }
 
 .datePickerWrapper :global(.react-datepicker-wrapper) {
@@ -507,36 +507,6 @@
 
 .datePickerWrapper :global(.react-datepicker__input-container) {
   width: 100%;
-}
-
-.timeInput {
-  flex: 1;
-  height: 32px;
-  padding: 0 10px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
-  color: var(--text);
-  font-size: 11px;
-  font-family: "JetBrains Mono", monospace;
-  transition: all 0.2s ease;
-  color-scheme: dark;
-}
-
-.timeInput:focus {
-  outline: none;
-  border-color: var(--primary);
-  background: rgba(0, 0, 0, 0.6);
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
-}
-
-.timeInput::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  opacity: 0.8;
-}
-
-.timeInput::-webkit-calendar-picker-indicator:hover {
-  opacity: 1;
 }
 
 .timeSeparator {
@@ -562,10 +532,10 @@
 }
 
 .timeRangeBtn {
-  padding: 6px 10px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
+  padding: 6px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   color: var(--muted);
   font-size: 11px;
   cursor: pointer;
@@ -580,33 +550,39 @@
 }
 
 .timeRangeBtn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
-/* DatePicker custom styles */
+.timeRangeBtn:disabled:hover {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--muted);
+}
+
+/* DatePicker custom styles - match chipsInput */
 .datePickerInput {
   width: 100%;
-  height: 32px;
-  padding: 0 10px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 6px;
+  min-height: 32px;
+  padding: 4px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
   color: var(--text);
-  font-size: 11px;
+  font-size: 12px;
   font-family: "JetBrains Mono", monospace;
-  transition: all 0.2s ease;
+  transition: border-color 0.15s ease;
 }
 
 .datePickerInput:focus {
   outline: none;
-  border-color: var(--primary);
-  background: rgba(0, 0, 0, 0.6);
+  border-color: rgba(34, 211, 238, 0.5);
   box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
 }
 
 .datePickerInput::placeholder {
-  color: rgba(148, 163, 184, 0.5);
+  color: var(--muted);
+  opacity: 0.6;
 }
 
 /* Filter Actions (Auto + Apply) */

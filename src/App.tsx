@@ -6,7 +6,7 @@ import { listen } from "@tauri-apps/api/event";
 import type { ParseSummary } from "./types";
 import "./App.css";
 import AppShell from "./components/AppShell";
-import LogcatView from "./components/LogcatView";
+import { LogcatViewV2 } from "./components/logcat";
 
 function App() {
   const [, setPath] = useState("");
@@ -148,7 +148,7 @@ function App() {
         </section>
       )}
 
-      {view === "logcat" && <LogcatView />}
+      {view === "logcat" && <LogcatViewV2 />}
     </AppShell>
   );
 }

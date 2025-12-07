@@ -25,10 +25,12 @@ export type ParseSummary = {
   efRecent: number;
 };
 
+export type LogLevel = "V" | "D" | "I" | "W" | "E" | "F";
+
 export type LogRow = {
   ts: string;
   tsIso?: string;
-  level: string;
+  level: LogLevel;
   tag: string;
   pid: number;
   tid: number;
@@ -38,7 +40,7 @@ export type LogRow = {
 export type LogFilters = {
   tsFrom?: string;
   tsTo?: string;
-  levels?: string[];
+  levels?: LogLevel[];
   tag?: string;
   pid?: number;
   tid?: number;
@@ -56,4 +58,43 @@ export type LogStreamResp = {
   totalRows?: number;
   minIsoMs?: number;
   maxIsoMs?: number;
+};
+
+// V2 API Types
+
+export type CursorDirection = "forward" | "backward";
+
+export type QueryCursor = {
+  position: number;
+  direction: CursorDirection;
+  filterHash: number;
+};
+
+export type QueryResponse = {
+  rows: LogRow[];
+  nextCursor: QueryCursor | null;
+  prevCursor: QueryCursor | null;
+  hasMoreNext: boolean;
+  hasMorePrev: boolean;
+  estimatedTotal?: number;
+  positionRatio: number;
+};
+
+export type LevelCounts = {
+  verbose: number;
+  debug: number;
+  info: number;
+  warning: number;
+  error: number;
+  fatal: number;
+};
+
+export type LogcatStats = {
+  totalRows: number;
+  filteredRows?: number;
+  minTimestampMs?: number;
+  maxTimestampMs?: number;
+  minTsDisplay?: string;
+  maxTsDisplay?: string;
+  levelCounts: LevelCounts;
 };

@@ -1,0 +1,739 @@
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
+import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { useDebouncedCallback } from "use-debounce";
+import type { LogFilters, LogLevel } from "../../types";
+import { useLogcatQuery } from "./hooks/useLogcatQuery";
+import { useLogHighlight } from "./hooks/useLogHighlight";
+import styles from "./LogcatViewV2.module.css";
+
+const ALL_LEVELS: LogLevel[] = ["V", "D", "I", "W", "E", "F"];
+
+// Format date to local datetime string (YYYY-MM-DD HH:mm:ss)
+function formatLocalDateTime(date: Date): string {
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
+}
+
+// Parse threadtime format (MM-DD HH:mm:ss.mmm) to filter format (YYYY-MM-DD HH:mm:ss)
+// Uses current year as default since threadtime doesn't include year
+function threadtimeToFilter(ts: string | undefined): string | undefined {
+  if (!ts) return undefined;
+  // Expected format: "MM-DD HH:mm:ss.mmm" e.g., "10-02 11:12:20.693"
+  const match = ts.match(/^(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+  if (!match) return undefined;
+  const [, month, day, hour, minute, second] = match;
+  const year = new Date().getFullYear();
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
+
+export default function LogcatViewV2() {
+  const [filters, setFilters] = useState<LogFilters>(() => {
+    try {
+      const raw = localStorage.getItem("lm.log.filters.v2");
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const [wrap, setWrap] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [searchIndex, setSearchIndex] = useState(-1);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Text filter chips state
+  const [textChips, setTextChips] = useState<string[]>([]);
+  const [textInput, setTextInput] = useState("");
+
+  const {
+    rows,
+    loading,
+    loadingNext,
+    loadingPrev,
+    error,
+    stats,
+    hasMoreNext,
+    hasMorePrev,
+    firstItemIndex,
+    loadInitial,
+    loadNext,
+    loadPrev,
+  } = useLogcatQuery(filters);
+
+  const highlight = useLogHighlight(filters);
+
+  // Persist filters
+  useEffect(() => {
+    try {
+      localStorage.setItem("lm.log.filters.v2", JSON.stringify(filters));
+    } catch {/* ignore */}
+  }, [filters]);
+
+  // Debounced auto-apply filters
+  const debouncedLoadInitial = useDebouncedCallback(() => {
+    loadInitial();
+  }, 400);
+
+  // Auto-apply when filters change
+  useEffect(() => {
+    debouncedLoadInitial();
+  }, [filters, debouncedLoadInitial]);
+
+  // Handle custom events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent<Partial<LogFilters>>;
+      setFilters((f) => ({ ...f, ...(ce.detail || {}) }));
+    };
+    window.addEventListener("lm:logcat:apply", handler as EventListener);
+    return () => window.removeEventListener("lm:logcat:apply", handler as EventListener);
+  }, []);
+
+  const setTag = (tag?: string) => setFilters((f) => ({ ...f, tag }));
+  const setPid = (pid?: number) => setFilters((f) => ({ ...f, pid }));
+
+  // Escape special regex characters for plain text search
+  const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+  // Sync text chips to filters.text (OR logic with |)
+  useEffect(() => {
+    if (textChips.length === 0) {
+      setFilters((f) => ({ ...f, text: undefined }));
+    } else if (textChips.length === 1) {
+      // Single chip: use as-is (respects textMode)
+      setFilters((f) => ({ ...f, text: textChips[0] }));
+    } else {
+      // Multiple chips: combine with OR logic using |
+      const isRegexMode = filters.textMode === "regex";
+      const pattern = textChips
+        .map((chip) => isRegexMode ? chip : escapeRegex(chip))
+        .join("|");
+      setFilters((f) => ({ ...f, text: pattern, textMode: "regex" }));
+    }
+  }, [textChips, filters.textMode]);
+
+  // Add text chip on Enter
+  const handleTextInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && textInput.trim()) {
+      e.preventDefault();
+      const newChip = textInput.trim();
+      if (!textChips.includes(newChip)) {
+        setTextChips([...textChips, newChip]);
+      }
+      setTextInput("");
+    } else if (e.key === "Backspace" && !textInput && textChips.length > 0) {
+      // Remove last chip on Backspace when input is empty
+      setTextChips(textChips.slice(0, -1));
+    }
+  };
+
+  // Remove a specific text chip
+  const removeTextChip = (chipToRemove: string) => {
+    setTextChips(textChips.filter((chip) => chip !== chipToRemove));
+  };
+
+  const toggleLevel = (level: LogLevel) => {
+    setFilters((f) => {
+      const current = f.levels || [];
+      const has = current.includes(level);
+      if (has) {
+        const next = current.filter((l) => l !== level);
+        return { ...f, levels: next.length > 0 ? next : undefined };
+      } else {
+        return { ...f, levels: [...current, level] };
+      }
+    });
+  };
+
+  const activeFilters = useMemo(() => {
+    return Object.entries(filters).filter(
+      ([, value]) => value !== undefined && value !== false && !(Array.isArray(value) && value.length === 0)
+    );
+  }, [filters]);
+
+  const hasFilters = activeFilters.length > 0;
+
+  const scrollToBottom = () => {
+    virtuosoRef.current?.scrollToIndex({ index: rows.length - 1, align: "end" });
+  };
+
+  // Search within loaded logs
+  const searchMatches = useMemo(() => {
+    if (!searchText.trim()) return [];
+    const query = searchText.toLowerCase();
+    return rows
+      .map((row, idx) => ({ idx, row }))
+      .filter(({ row }) =>
+        row.msg.toLowerCase().includes(query) ||
+        row.tag.toLowerCase().includes(query)
+      )
+      .map(({ idx }) => idx);
+  }, [rows, searchText]);
+
+  const goToSearchResult = (direction: "next" | "prev") => {
+    if (searchMatches.length === 0) return;
+
+    let newIndex: number;
+    if (searchIndex === -1) {
+      newIndex = 0;
+    } else if (direction === "next") {
+      newIndex = (searchIndex + 1) % searchMatches.length;
+    } else {
+      newIndex = (searchIndex - 1 + searchMatches.length) % searchMatches.length;
+    }
+
+    setSearchIndex(newIndex);
+    const rowIndex = searchMatches[newIndex];
+    virtuosoRef.current?.scrollToIndex({ index: rowIndex, align: "center" });
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      goToSearchResult(e.shiftKey ? "prev" : "next");
+    } else if (e.key === "Escape") {
+      closeSearch();
+    }
+  };
+
+  const closeSearch = () => {
+    setShowSearch(false);
+    setSearchText("");
+    setSearchIndex(-1);
+  };
+
+  const openSearch = () => {
+    setShowSearch(true);
+    // Focus input after render
+    setTimeout(() => searchInputRef.current?.focus(), 0);
+  };
+
+  // Global Ctrl+F handler
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+        e.preventDefault();
+        if (showSearch) {
+          searchInputRef.current?.focus();
+          searchInputRef.current?.select();
+        } else {
+          openSearch();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [showSearch]);
+
+  // Reset search index when search text changes
+  useEffect(() => {
+    setSearchIndex(-1);
+  }, [searchText]);
+
+  const renderRow = useCallback(
+    (index: number) => {
+      const r = rows[index];
+      if (!r) return null;
+
+      const { parts, matches } = highlight(r.msg);
+      const isError = r.level === "E" || r.level === "F";
+      const isSearchMatch = searchMatches.includes(index);
+      const isCurrentMatch = searchIndex >= 0 && searchMatches[searchIndex] === index;
+
+      return (
+        <div
+          className={`${styles.logRow} ${isError ? (r.level === "F" ? styles.levelF : styles.levelE) : ""} ${isSearchMatch ? styles.searchMatch : ""} ${isCurrentMatch ? styles.currentMatch : ""}`}
+        >
+          <div className={styles.cellTs}>{r.ts}</div>
+          <div
+            className={styles.cellPid}
+            onClick={() => setPid(r.pid)}
+            title="Filter by PID"
+          >
+            {String(r.pid).padStart(5, " ")}/{String(r.tid).padStart(5, " ")}
+          </div>
+          <div className={styles.cellLevel}>
+            <span className={`${styles.levelBadge} ${styles[r.level]}`}>{r.level}</span>
+          </div>
+          <div className={styles.cellTag} onClick={() => setTag(r.tag)} title="Filter by Tag">
+            {r.tag}
+          </div>
+          <div className={`${styles.cellMsg} ${wrap ? styles.wrap : styles.nowrap}`}>
+            {parts.map((part, i) => (
+              <span key={i}>
+                {part}
+                {i < matches.length && <span className={styles.highlight}>{matches[i]}</span>}
+              </span>
+            ))}
+          </div>
+        </div>
+      );
+    },
+    [rows, highlight, wrap, searchMatches, searchIndex]
+  );
+
+  const formatFilterValue = (key: string, value: unknown): string => {
+    if (Array.isArray(value)) return value.join(", ");
+    if (key === "tsFrom" || key === "tsTo") {
+      return String(value).replace("T", " ");
+    }
+    return String(value);
+  };
+
+  const formatFilterKey = (key: string): string => {
+    const keyMap: Record<string, string> = {
+      tag: "Tag",
+      pid: "PID",
+      tid: "TID",
+      text: "Text",
+      notText: "Exclude",
+      levels: "Level",
+      tsFrom: "From",
+      tsTo: "To",
+      textMode: "Mode",
+      caseSensitive: "Case",
+    };
+    return keyMap[key] || key;
+  };
+
+  return (
+    <div className={styles.container}>
+      {/* Header Bar */}
+      <div className={styles.header}>
+        <div className={styles.titleGroup}>
+          <h2 className={styles.title}>LOGCAT</h2>
+          {stats && (
+            <div className={styles.stats}>
+              <div className={styles.statItem}>
+                <span>Total</span>
+                <strong>{stats.totalRows.toLocaleString()}</strong>
+              </div>
+              <div className={styles.statItem}>
+                <span>Loaded</span>
+                <strong>{rows.length.toLocaleString()}</strong>
+              </div>
+              <div className={`${styles.statItem} ${styles.error}`}>
+                <span>E</span>
+                <strong>{stats.levelCounts.error}</strong>
+              </div>
+              <div className={`${styles.statItem} ${styles.fatal}`}>
+                <span>F</span>
+                <strong>{stats.levelCounts.fatal}</strong>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className={styles.headerActions}>
+          <label className={styles.wrapToggle} title="Wrap long lines">
+            <input
+              type="checkbox"
+              checked={wrap}
+              onChange={(e) => setWrap(e.currentTarget?.checked ?? false)}
+            />
+            <span>Wrap</span>
+          </label>
+          <button
+            className={styles.headerBtn}
+            onClick={openSearch}
+            title="Search (Ctrl+F)"
+          >
+            ⌕
+          </button>
+          <button
+            className={styles.headerBtn}
+            onClick={scrollToBottom}
+            title="Scroll to bottom"
+          >
+            ↓
+          </button>
+        </div>
+      </div>
+
+      {/* Filter Panel */}
+      <div className={styles.filterPanel}>
+        {/* Row 1: Text Filter with chips */}
+        <div className={styles.filterRow}>
+          <div className={styles.textFilterGroup}>
+            <label className={styles.filterLabel}>Text Filter</label>
+            <div className={styles.textFilterInput}>
+              <div className={styles.textChipsContainer}>
+                {textChips.map((chip, idx) => (
+                  <span key={idx} className={styles.textChip}>
+                    {chip}
+                    <span
+                      className={styles.textChipRemove}
+                      onClick={() => removeTextChip(chip)}
+                    >
+                      ×
+                    </span>
+                  </span>
+                ))}
+                <input
+                  className={styles.textChipInput}
+                  placeholder={textChips.length === 0 ? "Type and press Enter..." : "Add more..."}
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.currentTarget?.value ?? "")}
+                  onKeyDown={handleTextInputKeyDown}
+                />
+              </div>
+              <div className={styles.textFilterOptions}>
+                <label className={styles.optionSmall} title="Use Regular Expression">
+                  <input
+                    type="checkbox"
+                    checked={filters.textMode === "regex"}
+                    onChange={(e) =>
+                      setFilters((f) => ({ ...f, textMode: e.currentTarget?.checked ? "regex" : "plain" }))
+                    }
+                    disabled={textChips.length > 1}
+                  />
+                  <span>.*</span>
+                </label>
+                <label className={styles.optionSmall} title="Case Sensitive">
+                  <input
+                    type="checkbox"
+                    checked={!!filters.caseSensitive}
+                    onChange={(e) =>
+                      setFilters((f) => ({ ...f, caseSensitive: e.currentTarget?.checked || undefined }))
+                    }
+                  />
+                  <span>Aa</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 2: Level, Tag, PID, TID, Exclude */}
+        <div className={styles.filterRow}>
+          <div className={styles.levelFilterCompact}>
+            <label className={styles.filterLabel}>Level</label>
+            <div className={styles.levelSelector}>
+              {ALL_LEVELS.map((level) => (
+                <button
+                  key={level}
+                  data-level={level}
+                  className={`${styles.levelBtn} ${
+                    (filters.levels || []).includes(level) ? styles.active : ""
+                  }`}
+                  onClick={() => toggleLevel(level)}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.filterGroup}>
+            <label className={styles.filterLabel}>Tag</label>
+            <input
+              className={styles.filterInput}
+              placeholder="ActivityManager"
+              value={filters.tag ?? ""}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, tag: e.currentTarget?.value || undefined }))
+              }
+            />
+          </div>
+
+          <div className={styles.filterGroupSmall}>
+            <label className={styles.filterLabel}>PID</label>
+            <input
+              className={styles.filterInput}
+              placeholder="1234"
+              value={filters.pid ?? ""}
+              onChange={(e) => {
+                const val = e.currentTarget?.value;
+                setFilters((f) => ({
+                  ...f,
+                  pid: val ? Number(val) : undefined,
+                }));
+              }}
+            />
+          </div>
+
+          <div className={styles.filterGroupSmall}>
+            <label className={styles.filterLabel}>TID</label>
+            <input
+              className={styles.filterInput}
+              placeholder="5678"
+              value={filters.tid ?? ""}
+              onChange={(e) => {
+                const val = e.currentTarget?.value;
+                setFilters((f) => ({
+                  ...f,
+                  tid: val ? Number(val) : undefined,
+                }));
+              }}
+            />
+          </div>
+
+          <div className={styles.filterGroup}>
+            <label className={styles.filterLabel}>Exclude</label>
+            <input
+              className={styles.filterInput}
+              placeholder="Noise text..."
+              value={filters.notText ?? ""}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, notText: e.currentTarget?.value || undefined }))
+              }
+            />
+          </div>
+        </div>
+
+        {/* Row 3: Time Range */}
+        <div className={styles.filterRow}>
+          <div className={styles.timeRangeGroup}>
+            <label className={styles.filterLabel}>
+              Time Range
+              {stats?.minTsDisplay && stats?.maxTsDisplay && (
+                <span className={styles.timeRangeHint}>
+                  (Data: {stats.minTsDisplay} ~ {stats.maxTsDisplay})
+                </span>
+              )}
+            </label>
+            <div className={styles.timeRangeInputs}>
+              <div className={styles.datePickerWrapper}>
+                <DatePicker
+                  selected={filters.tsFrom ? new Date(filters.tsFrom.replace(" ", "T")) : null}
+                  onChange={(date: Date | null) =>
+                    setFilters((f) => ({
+                      ...f,
+                      tsFrom: date ? formatLocalDateTime(date) : undefined,
+                    }))
+                  }
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={15}
+                  dateFormat="yyyy-MM-dd HH:mm"
+                  placeholderText="From..."
+                  className={styles.datePickerInput}
+                  isClearable
+                  minDate={stats?.minTimestampMs ? new Date(stats.minTimestampMs) : undefined}
+                  maxDate={stats?.maxTimestampMs ? new Date(stats.maxTimestampMs) : undefined}
+                  openToDate={stats?.minTimestampMs ? new Date(stats.minTimestampMs) : undefined}
+                  portalId="datepicker-portal"
+                />
+              </div>
+              <span className={styles.timeSeparator}>to</span>
+              <div className={styles.datePickerWrapper}>
+                <DatePicker
+                  selected={filters.tsTo ? new Date(filters.tsTo.replace(" ", "T")) : null}
+                  onChange={(date: Date | null) =>
+                    setFilters((f) => ({
+                      ...f,
+                      tsTo: date ? formatLocalDateTime(date) : undefined,
+                    }))
+                  }
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={15}
+                  dateFormat="yyyy-MM-dd HH:mm"
+                  placeholderText="To..."
+                  className={styles.datePickerInput}
+                  isClearable
+                  minDate={stats?.minTimestampMs ? new Date(stats.minTimestampMs) : undefined}
+                  maxDate={stats?.maxTimestampMs ? new Date(stats.maxTimestampMs) : undefined}
+                  openToDate={stats?.maxTimestampMs ? new Date(stats.maxTimestampMs) : undefined}
+                  portalId="datepicker-portal"
+                />
+              </div>
+              <div className={styles.timeRangeActions}>
+                <button
+                  className={styles.timeRangeBtn}
+                  onClick={() => {
+                    const tsFrom = threadtimeToFilter(stats?.minTsDisplay);
+                    if (tsFrom) {
+                      setFilters((f) => ({ ...f, tsFrom }));
+                    }
+                  }}
+                  disabled={!stats?.minTsDisplay}
+                  title="Set to earliest log time"
+                >
+                  Min
+                </button>
+                <button
+                  className={styles.timeRangeBtn}
+                  onClick={() => {
+                    const tsTo = threadtimeToFilter(stats?.maxTsDisplay);
+                    if (tsTo) {
+                      setFilters((f) => ({ ...f, tsTo }));
+                    }
+                  }}
+                  disabled={!stats?.maxTsDisplay}
+                  title="Set to latest log time"
+                >
+                  Max
+                </button>
+                <button
+                  className={styles.timeRangeBtn}
+                  onClick={() => {
+                    setFilters((f) => ({
+                      ...f,
+                      tsFrom: undefined,
+                      tsTo: undefined,
+                    }));
+                  }}
+                  disabled={!filters.tsFrom && !filters.tsTo}
+                  title="Clear time range"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Active Filters Chips */}
+      {hasFilters && (
+        <div className={styles.chipBar}>
+          {activeFilters.map(([key, value]) => (
+            <span key={key} className={styles.chip}>
+              <span className={styles.chipKey}>{formatFilterKey(key)}:</span>
+              <span className={styles.chipValue}>{formatFilterValue(key, value)}</span>
+              <span
+                className={styles.chipRemove}
+                onClick={() => setFilters((f) => ({ ...f, [key]: undefined }))}
+              >
+                ×
+              </span>
+            </span>
+          ))}
+          <button className={styles.clearAllBtn} onClick={() => setFilters({})}>
+            Clear All
+          </button>
+        </div>
+      )}
+
+      {/* Log Container */}
+      <div className={styles.logContainer}>
+        {/* Floating Search Box - only shown when search is open */}
+        {showSearch && (
+          <div className={styles.floatingSearch}>
+            <div className={styles.searchBox}>
+              <div className={styles.searchInputWrapper}>
+                <span className={styles.searchIcon}>⌕</span>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  className={styles.searchInput}
+                  placeholder="Find in logs..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  onKeyDown={handleSearchKeyDown}
+                />
+              </div>
+              <div className={styles.searchDivider} />
+              <div className={styles.searchControls}>
+                <span className={styles.searchCount}>
+                  {searchMatches.length > 0
+                    ? `${searchIndex + 1}/${searchMatches.length}`
+                    : "0/0"}
+                </span>
+                <button
+                  className={styles.searchNav}
+                  onClick={() => goToSearchResult("prev")}
+                  disabled={searchMatches.length === 0}
+                  title="Previous (Shift+Enter)"
+                >
+                  ▲
+                </button>
+                <button
+                  className={styles.searchNav}
+                  onClick={() => goToSearchResult("next")}
+                  disabled={searchMatches.length === 0}
+                  title="Next (Enter)"
+                >
+                  ▼
+                </button>
+                <button
+                  className={styles.searchClose}
+                  onClick={closeSearch}
+                  title="Close (Esc)"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Table Header */}
+        <div className={styles.logHeader}>
+          <div className={styles.logHeaderCell}>Timestamp</div>
+          <div className={styles.logHeaderCell}>PID/TID</div>
+          <div className={styles.logHeaderCell}>Lvl</div>
+          <div className={styles.logHeaderCell}>Tag</div>
+          <div className={styles.logHeaderCell}>Message</div>
+        </div>
+
+        {/* Error State - only show if no data */}
+        {error && rows.length === 0 && (
+          <div className={styles.errorState}>
+            <div className={styles.emptyIcon}>⚠</div>
+            <div className={styles.emptyText}>{error}</div>
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!loading && !error && rows.length === 0 && (
+          <div className={styles.emptyState}>
+            <div className={styles.emptyIcon}>📋</div>
+            <div className={styles.emptyText}>
+              No logs to display.
+              <br />
+              Open a bugreport file to get started.
+            </div>
+          </div>
+        )}
+
+        {/* Log Body with Virtuoso */}
+        {rows.length > 0 && (
+          <div className={styles.logBody}>
+            <Virtuoso
+              ref={virtuosoRef}
+              totalCount={rows.length}
+              firstItemIndex={firstItemIndex}
+              itemContent={renderRow}
+              startReached={() => {
+                if (hasMorePrev && !loadingPrev) loadPrev();
+              }}
+              endReached={() => {
+                if (hasMoreNext && !loadingNext) loadNext();
+              }}
+              overscan={200}
+              style={{ height: "100%" }}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Status Bar */}
+      <div className={styles.statusBar}>
+        <div className={styles.statusLeft}>
+          {(loading || loadingNext || loadingPrev) && (
+            <>
+              <span className={styles.loadingDot} />
+              <span>
+                {loading ? "Loading..." : loadingPrev ? "Loading older..." : "Loading newer..."}
+              </span>
+            </>
+          )}
+          {!loading && !loadingNext && !loadingPrev && rows.length > 0 && (
+            <span>
+              Showing {rows.length.toLocaleString()} of {stats?.totalRows.toLocaleString() ?? "?"} rows
+            </span>
+          )}
+        </div>
+        <div className={styles.statusRight}>
+          {hasMorePrev && <span>↑ More above</span>}
+          {hasMoreNext && <span>↓ More below</span>}
+        </div>
+      </div>
+    </div>
+  );
+}

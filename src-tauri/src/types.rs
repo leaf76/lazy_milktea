@@ -46,7 +46,7 @@ pub struct LogRow {
     pub msg: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Hash)]
 #[serde(rename_all = "camelCase")]
 pub struct LogFilters {
     pub ts_from: Option<String>,

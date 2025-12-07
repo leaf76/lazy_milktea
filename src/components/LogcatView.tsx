@@ -78,10 +78,6 @@ export default function LogcatView() {
   }, 400);
   useEffect(() => { if (auto) debouncedReset(); }, [filters, batch, auto]);
 
-  const levelQuick = (profile: "E" | "WE" | "IWE" | "ALL") => {
-    setFilters((f) => ({ ...f, levels: profile === "E" ? ["E", "F"] : profile === "WE" ? ["W", "E", "F"] : profile === "IWE" ? ["I", "W", "E", "F"] : undefined }));
-  };
-
   const highlight = useCallback((text: string) => {
     const q = filters.text?.trim();
     if (!q) return <span className={styles.logColMsg}>{text}</span>;

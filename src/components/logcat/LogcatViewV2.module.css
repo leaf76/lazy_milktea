@@ -1,0 +1,1348 @@
+/* LogcatViewV2.module.css - Terminal-inspired professional log viewer */
+
+/* ============================================
+   Container & Layout
+   ============================================ */
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* ============================================
+   Header Bar
+   ============================================ */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.95), rgba(15, 23, 42, 0.98));
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.title {
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title::before {
+  content: ">";
+  color: var(--primary-2);
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.stats {
+  display: flex;
+  gap: 16px;
+  font-size: 11px;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  padding: 4px 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.statItem strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.statItem.error strong {
+  color: var(--error);
+}
+
+.statItem.fatal strong {
+  color: #ff6b6b;
+  text-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wrapToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  transition: all 0.15s ease;
+}
+
+.wrapToggle:hover {
+  border-color: rgba(34, 211, 238, 0.3);
+  color: var(--text);
+}
+
+.wrapToggle:has(input:checked) {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.4);
+  color: var(--primary);
+}
+
+.wrapToggle input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--primary);
+}
+
+.headerBtn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.headerBtn:hover {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.4);
+  color: var(--primary);
+}
+
+/* ============================================
+   Filter Panel
+   ============================================ */
+.filterPanel {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.6), rgba(11, 15, 26, 0.8));
+  border-bottom: 1px solid var(--border);
+  padding: 12px 20px;
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.filterRow {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.filterGroupSmall {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.filterLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--muted);
+  padding-left: 2px;
+}
+
+.filterLabel .hint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  opacity: 0.6;
+}
+
+.filterInput {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-family: "JetBrains Mono", monospace;
+  transition: all 0.2s ease;
+}
+
+.filterInput::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.filterInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1), inset 0 0 20px rgba(34, 211, 238, 0.03);
+}
+
+.filterInput:hover:not(:focus) {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Text Filter with inline options */
+.textFilterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.textFilterInput {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.textFilterInput .filterInput {
+  flex: 1;
+}
+
+/* Text Chips Container */
+.textChipsContainer {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 4px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color 0.15s ease;
+}
+
+.textChipsContainer:focus-within {
+  border-color: rgba(34, 211, 238, 0.5);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+}
+
+.textChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.15), rgba(232, 121, 249, 0.1));
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: "JetBrains Mono", monospace;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.textChipRemove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  font-size: 12px;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s ease;
+}
+
+.textChipRemove:hover {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.textChipInput {
+  flex: 1;
+  min-width: 120px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  font-family: "JetBrains Mono", monospace;
+  outline: none;
+}
+
+.textChipInput::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.textFilterOptions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.optionSmall {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.optionSmall input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.optionSmall span {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: "JetBrains Mono", monospace;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.optionSmall:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.optionSmall:has(input:checked) {
+  background: rgba(34, 211, 238, 0.15);
+  border-color: var(--primary);
+}
+
+.optionSmall:has(input:checked) span {
+  color: var(--primary);
+}
+
+/* Level Filter */
+.levelFilterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.levelFilterCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.levelSelector {
+  display: flex;
+  gap: 3px;
+}
+
+.levelBtn {
+  width: 28px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: "JetBrains Mono", monospace;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.levelBtn:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.levelBtn.active {
+  background: rgba(34, 211, 238, 0.15);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.levelBtn[data-level="V"].active { color: #9ca3af; border-color: #9ca3af; background: rgba(156, 163, 175, 0.15); }
+.levelBtn[data-level="D"].active { color: #93c5fd; border-color: #93c5fd; background: rgba(147, 197, 253, 0.15); }
+.levelBtn[data-level="I"].active { color: #a7f3d0; border-color: #a7f3d0; background: rgba(167, 243, 208, 0.15); }
+.levelBtn[data-level="W"].active { color: #fbbf24; border-color: #fbbf24; background: rgba(251, 191, 36, 0.15); }
+.levelBtn[data-level="E"].active { color: #f87171; border-color: #f87171; background: rgba(248, 113, 113, 0.15); }
+.levelBtn[data-level="F"].active { color: #ff6b6b; border-color: #ff6b6b; background: rgba(255, 107, 107, 0.2); box-shadow: 0 0 12px rgba(255, 107, 107, 0.3); }
+
+/* Time Range */
+.timeRangeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.timeRangeInputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* DatePicker wrapper */
+.datePickerWrapper {
+  flex: 0 0 180px;
+  min-width: 0;
+}
+
+.datePickerWrapper :global(.react-datepicker-wrapper) {
+  width: 100%;
+}
+
+.datePickerWrapper :global(.react-datepicker__input-container) {
+  width: 100%;
+}
+
+.timeInput {
+  flex: 1;
+  height: 32px;
+  padding: 0 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 11px;
+  font-family: "JetBrains Mono", monospace;
+  transition: all 0.2s ease;
+  color-scheme: dark;
+}
+
+.timeInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+}
+
+.timeInput::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.timeInput::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
+.timeSeparator {
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* Time Range Hint */
+.timeRangeHint {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: rgba(34, 211, 238, 0.8);
+  margin-left: 8px;
+  font-size: 10px;
+}
+
+.timeRangeActions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.timeRangeBtn {
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.timeRangeBtn:hover {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.3);
+  color: var(--primary);
+}
+
+.timeRangeBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* DatePicker custom styles */
+.datePickerInput {
+  width: 100%;
+  height: 32px;
+  padding: 0 10px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 11px;
+  font-family: "JetBrains Mono", monospace;
+  transition: all 0.2s ease;
+}
+
+.datePickerInput:focus {
+  outline: none;
+  border-color: var(--primary);
+  background: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.1);
+}
+
+.datePickerInput::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+/* Filter Actions (Auto + Apply) */
+.filterActions {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-bottom: 1px;
+}
+
+.autoOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  height: 32px;
+  padding: 0 10px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.autoOption:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.autoOption input[type="checkbox"] {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.autoOption input[type="checkbox"]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.autoOption input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #081018;
+  font-weight: bold;
+}
+
+.autoOption span {
+  font-size: 12px;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.autoOption:hover span {
+  color: var(--text);
+}
+
+.applyBtn {
+  height: 32px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  border: 1px solid rgba(34, 211, 238, 0.5);
+  border-radius: 6px;
+  color: #081018;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.2);
+  transition: all 0.15s ease;
+}
+
+.applyBtn:hover {
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.35);
+  transform: translateY(-1px);
+}
+
+.applyBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Text options inline (legacy - for compatibility) */
+.textOptions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 32px;
+  padding: 0 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.option input[type="checkbox"] {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.option input[type="checkbox"]:checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.option input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #081018;
+  font-weight: bold;
+}
+
+.option span {
+  font-size: 12px;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.option:hover span {
+  color: var(--text);
+}
+
+.actionGroup {
+  display: flex;
+  gap: 8px;
+}
+
+/* Buttons */
+.btn {
+  height: 34px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btnPrimary {
+  height: 28px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary), var(--primary-2));
+  border: 1px solid rgba(34, 211, 238, 0.5);
+  border-radius: 6px;
+  color: #081018;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.2);
+  transition: all 0.15s ease;
+}
+
+.btnPrimary:hover {
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.35);
+  transform: translateY(-1px);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btnGhost {
+  composes: btn;
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+
+.btnGhost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+}
+
+/* ============================================
+   Active Filters Chips
+   ============================================ */
+.chipBar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid var(--border);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 12px;
+  background: rgba(34, 211, 238, 0.1);
+  border: 1px solid rgba(34, 211, 238, 0.25);
+  border-radius: 100px;
+  font-size: 11px;
+  font-family: "JetBrains Mono", monospace;
+  color: var(--primary);
+}
+
+.chipKey {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.chipValue {
+  color: var(--text);
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chipRemove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  color: var(--muted);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chipRemove:hover {
+  background: var(--error);
+  color: white;
+}
+
+.clearAllBtn {
+  padding: 5px 12px;
+  background: transparent;
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 100px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.clearAllBtn:hover {
+  border-color: var(--error);
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* ============================================
+   Log Table
+   ============================================ */
+.logContainer {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.5));
+  position: relative;
+}
+
+/* Floating toolbar - top right of log container */
+.floatingSearch {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  z-index: 20;
+  animation: slideIn 0.15s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.optionCompact {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.optionCompact input[type="checkbox"] {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.15s ease;
+}
+
+.optionCompact input[type="checkbox"]:checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.optionCompact input[type="checkbox"]:checked::after {
+  content: "✓";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #081018;
+  font-weight: bold;
+}
+
+.optionCompact span {
+  font-size: 11px;
+  color: var(--muted);
+  transition: color 0.15s ease;
+}
+
+.optionCompact:hover span {
+  color: var(--text);
+}
+
+.toolbarDivider {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 4px;
+}
+
+.btnIcon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btnIcon:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Search box in floating toolbar */
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.searchBox:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.15);
+}
+
+.searchInputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.searchIcon {
+  font-size: 13px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.searchInput {
+  width: 160px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-size: 12px;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.searchInput::placeholder {
+  color: rgba(148, 163, 184, 0.5);
+}
+
+.searchDivider {
+  width: 1px;
+  height: 18px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.searchControls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.searchCount {
+  font-size: 11px;
+  color: var(--muted);
+  padding: 2px 8px;
+  font-family: "JetBrains Mono", monospace;
+  flex-shrink: 0;
+  min-width: 50px;
+  text-align: center;
+}
+
+.searchNav {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.1s ease;
+  flex-shrink: 0;
+}
+
+.searchNav:hover:not(:disabled) {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: rgba(34, 211, 238, 0.3);
+  color: var(--primary);
+}
+
+.searchNav:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.searchClose {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.1s ease;
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.searchClose:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: var(--error);
+}
+
+.logHeader {
+  display: grid;
+  grid-template-columns: 150px 110px 44px 160px 1fr;
+  gap: 1px;
+  padding: 0 16px;
+  background: rgba(0, 0, 0, 0.6);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.logHeaderCell {
+  padding: 10px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.logBody {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Individual log row */
+.logRow {
+  display: grid;
+  grid-template-columns: 150px 110px 44px 160px 1fr;
+  gap: 1px;
+  padding: 0 16px;
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  transition: background 0.1s ease;
+}
+
+.logRow:hover {
+  background: rgba(34, 211, 238, 0.04);
+}
+
+.logRow.levelE {
+  background: rgba(248, 113, 113, 0.05);
+}
+
+.logRow.levelF {
+  background: rgba(255, 107, 107, 0.08);
+  border-left: 2px solid var(--error);
+}
+
+.logRow.searchMatch {
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.logRow.currentMatch {
+  background: rgba(251, 191, 36, 0.2);
+  border-left: 3px solid #fbbf24;
+  box-shadow: inset 0 0 20px rgba(251, 191, 36, 0.1);
+}
+
+.logCell {
+  padding: 6px 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cellTs {
+  composes: logCell;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.cellPid {
+  composes: logCell;
+  color: #71717a;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.cellPid:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.cellLevel {
+  composes: logCell;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.levelBadge {
+  width: 24px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.levelBadge.V { background: rgba(156, 163, 175, 0.2); color: #9ca3af; }
+.levelBadge.D { background: rgba(147, 197, 253, 0.2); color: #93c5fd; }
+.levelBadge.I { background: rgba(167, 243, 208, 0.2); color: #6ee7b7; }
+.levelBadge.W { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+.levelBadge.E { background: rgba(248, 113, 113, 0.25); color: #f87171; }
+.levelBadge.F {
+  background: rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+  box-shadow: 0 0 8px rgba(255, 107, 107, 0.4);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(255, 107, 107, 0.4); }
+  50% { box-shadow: 0 0 16px rgba(255, 107, 107, 0.6); }
+}
+
+.cellTag {
+  composes: logCell;
+  color: var(--primary);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.cellTag:hover {
+  text-decoration: underline;
+}
+
+.cellMsg {
+  composes: logCell;
+  color: var(--text);
+}
+
+.cellMsg.wrap {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.cellMsg.nowrap {
+  white-space: pre;
+}
+
+/* Highlight matches */
+.highlight {
+  background: linear-gradient(135deg, rgba(232, 121, 249, 0.35), rgba(34, 211, 238, 0.25));
+  border-radius: 3px;
+  padding: 1px 3px;
+  margin: 0 -1px;
+}
+
+/* ============================================
+   Status Bar
+   ============================================ */
+.statusBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  background: rgba(0, 0, 0, 0.6);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  font-family: "JetBrains Mono", monospace;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.statusLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.statusRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.loadingDot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--primary);
+  border-radius: 50%;
+  animation: loadingPulse 1s ease-in-out infinite;
+}
+
+@keyframes loadingPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================
+   Empty & Error States
+   ============================================ */
+.emptyState {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--muted);
+  padding: 48px;
+  min-height: 200px;
+}
+
+.emptyIcon {
+  font-size: 48px;
+  opacity: 0.3;
+}
+
+.emptyText {
+  font-size: 14px;
+  text-align: center;
+}
+
+.errorState {
+  composes: emptyState;
+  color: var(--error);
+}
+
+.errorState .emptyIcon {
+  color: var(--error);
+}
+
+/* ============================================
+   Loading Overlay
+   ============================================ */
+.loadingOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 15, 26, 0.8);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+}
+
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(34, 211, 238, 0.2);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   Scrollbar Styling
+   ============================================ */
+.logBody ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.logBody ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.logBody ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+}
+
+.logBody ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}

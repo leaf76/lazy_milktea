@@ -49,6 +49,12 @@ export default function LogcatViewV2() {
   const [textChips, setTextChips] = useState<string[]>([]);
   const [textInput, setTextInput] = useState("");
 
+  // Local state for debounced inputs (prevents re-render lag during typing)
+  const [localTag, setLocalTag] = useState(filters.tag ?? "");
+  const [localPid, setLocalPid] = useState(filters.pid?.toString() ?? "");
+  const [localTid, setLocalTid] = useState(filters.tid?.toString() ?? "");
+  const [localNotText, setLocalNotText] = useState(filters.notText ?? "");
+
   const {
     rows,
     loading,
@@ -78,10 +84,44 @@ export default function LogcatViewV2() {
     loadInitial();
   }, 400);
 
+  // Debounced sync from local input state to filters
+  const debouncedSyncTag = useDebouncedCallback((val: string) => {
+    setFilters((f) => ({ ...f, tag: val || undefined }));
+  }, 300);
+
+  const debouncedSyncPid = useDebouncedCallback((val: string) => {
+    setFilters((f) => ({ ...f, pid: val ? Number(val) : undefined }));
+  }, 300);
+
+  const debouncedSyncTid = useDebouncedCallback((val: string) => {
+    setFilters((f) => ({ ...f, tid: val ? Number(val) : undefined }));
+  }, 300);
+
+  const debouncedSyncNotText = useDebouncedCallback((val: string) => {
+    setFilters((f) => ({ ...f, notText: val || undefined }));
+  }, 300);
+
   // Auto-apply when filters change
   useEffect(() => {
     debouncedLoadInitial();
   }, [filters, debouncedLoadInitial]);
+
+  // Sync local state when filters change externally (e.g., clear all, click tag)
+  useEffect(() => {
+    setLocalTag(filters.tag ?? "");
+  }, [filters.tag]);
+
+  useEffect(() => {
+    setLocalPid(filters.pid?.toString() ?? "");
+  }, [filters.pid]);
+
+  useEffect(() => {
+    setLocalTid(filters.tid?.toString() ?? "");
+  }, [filters.tid]);
+
+  useEffect(() => {
+    setLocalNotText(filters.notText ?? "");
+  }, [filters.notText]);
 
   // Handle custom events
   useEffect(() => {
@@ -332,7 +372,7 @@ export default function LogcatViewV2() {
             <input
               type="checkbox"
               checked={wrap}
-              onChange={(e) => setWrap(e.currentTarget?.checked ?? false)}
+              onChange={(e) => setWrap(e.target.checked)}
             />
             <span>Wrap</span>
           </label>
@@ -376,7 +416,7 @@ export default function LogcatViewV2() {
                   className={styles.textChipInput}
                   placeholder={textChips.length === 0 ? "Type and press Enter..." : "Add more..."}
                   value={textInput}
-                  onChange={(e) => setTextInput(e.currentTarget?.value ?? "")}
+                  onChange={(e) => setTextInput(e.target.value)}
                   onKeyDown={handleTextInputKeyDown}
                 />
               </div>
@@ -386,7 +426,7 @@ export default function LogcatViewV2() {
                     type="checkbox"
                     checked={filters.textMode === "regex"}
                     onChange={(e) =>
-                      setFilters((f) => ({ ...f, textMode: e.currentTarget?.checked ? "regex" : "plain" }))
+                      setFilters((f) => ({ ...f, textMode: e.target.checked ? "regex" : "plain" }))
                     }
                     disabled={textChips.length > 1}
                   />
@@ -397,7 +437,7 @@ export default function LogcatViewV2() {
                     type="checkbox"
                     checked={!!filters.caseSensitive}
                     onChange={(e) =>
-                      setFilters((f) => ({ ...f, caseSensitive: e.currentTarget?.checked || undefined }))
+                      setFilters((f) => ({ ...f, caseSensitive: e.target.checked || undefined }))
                     }
                   />
                   <span>Aa</span>
@@ -432,10 +472,12 @@ export default function LogcatViewV2() {
             <input
               className={styles.filterInput}
               placeholder="ActivityManager"
-              value={filters.tag ?? ""}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, tag: e.currentTarget?.value || undefined }))
-              }
+              value={localTag}
+              onChange={(e) => {
+                const val = e.target.value;
+                setLocalTag(val);
+                debouncedSyncTag(val);
+              }}
             />
           </div>
 
@@ -444,13 +486,11 @@ export default function LogcatViewV2() {
             <input
               className={styles.filterInput}
               placeholder="1234"
-              value={filters.pid ?? ""}
+              value={localPid}
               onChange={(e) => {
-                const val = e.currentTarget?.value;
-                setFilters((f) => ({
-                  ...f,
-                  pid: val ? Number(val) : undefined,
-                }));
+                const val = e.target.value;
+                setLocalPid(val);
+                debouncedSyncPid(val);
               }}
             />
           </div>
@@ -460,13 +500,11 @@ export default function LogcatViewV2() {
             <input
               className={styles.filterInput}
               placeholder="5678"
-              value={filters.tid ?? ""}
+              value={localTid}
               onChange={(e) => {
-                const val = e.currentTarget?.value;
-                setFilters((f) => ({
-                  ...f,
-                  tid: val ? Number(val) : undefined,
-                }));
+                const val = e.target.value;
+                setLocalTid(val);
+                debouncedSyncTid(val);
               }}
             />
           </div>
@@ -476,10 +514,12 @@ export default function LogcatViewV2() {
             <input
               className={styles.filterInput}
               placeholder="Noise text..."
-              value={filters.notText ?? ""}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, notText: e.currentTarget?.value || undefined }))
-              }
+              value={localNotText}
+              onChange={(e) => {
+                const val = e.target.value;
+                setLocalNotText(val);
+                debouncedSyncNotText(val);
+              }}
             />
           </div>
         </div>

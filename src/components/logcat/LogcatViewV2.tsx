@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
 import { useDebouncedCallback } from "use-debounce";
 import type { LogFilters, LogLevel } from "../../types";
 import { useLogcatQuery } from "./hooks/useLogcatQuery";
@@ -10,23 +8,43 @@ import styles from "./LogcatViewV2.module.css";
 
 const ALL_LEVELS: LogLevel[] = ["V", "D", "I", "W", "E", "F"];
 
-// Format date to local datetime string (YYYY-MM-DD HH:mm:ss)
-function formatLocalDateTime(date: Date): string {
-  const pad = (n: number) => n.toString().padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-}
+const THREADTIME_PATTERN = /^(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,3})?$/;
 
-// Parse threadtime format (MM-DD HH:mm:ss.mmm) to filter format (YYYY-MM-DD HH:mm:ss)
-// Uses current year as default since threadtime doesn't include year
-function threadtimeToFilter(ts: string | undefined): string | undefined {
-  if (!ts) return undefined;
-  // Expected format: "MM-DD HH:mm:ss.mmm" e.g., "10-02 11:12:20.693"
-  const match = ts.match(/^(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})/);
+const FILTER_PATTERN = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/;
+
+const threadtimeToFilter = (value: string | undefined, year: number): string | undefined => {
+  if (!value) return undefined;
+  const match = value.match(THREADTIME_PATTERN);
   if (!match) return undefined;
   const [, month, day, hour, minute, second] = match;
-  const year = new Date().getFullYear();
   return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-}
+};
+
+const parseThreadtimeInput = (input: string | undefined, year: number): string | undefined => {
+  if (!input) return undefined;
+  const trimmed = input.trim();
+  if (!trimmed) return undefined;
+  const match = trimmed.match(THREADTIME_PATTERN);
+  if (!match) return undefined;
+  const [, month, day, hour, minute, second] = match;
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+};
+
+const filterToThreadtime = (value: string | undefined): string => {
+  if (!value) return "";
+  const match = value.match(FILTER_PATTERN);
+  if (!match) return "";
+  const [, , month, day, hour, minute, second] = match;
+  return `${month}-${day} ${hour}:${minute}:${second}`;
+};
+
+const parseFilterDate = (value: string | undefined): Date | null => {
+  if (!value) return null;
+  const match = value.match(FILTER_PATTERN);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second] = match;
+  return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+};
 
 export default function LogcatViewV2() {
   const [filters, setFilters] = useState<LogFilters>(() => {
@@ -57,6 +75,9 @@ export default function LogcatViewV2() {
   const [localPid, setLocalPid] = useState(filters.pid?.toString() ?? "");
   const [localTid, setLocalTid] = useState(filters.tid?.toString() ?? "");
   const [localNotText, setLocalNotText] = useState(filters.notText ?? "");
+  const [localFrom, setLocalFrom] = useState("");
+  const [localTo, setLocalTo] = useState("");
+  const [timeRangeYear, setTimeRangeYear] = useState(() => new Date().getFullYear());
 
   const {
     rows,
@@ -100,6 +121,28 @@ export default function LogcatViewV2() {
     setFilters((f) => ({ ...f, notText: val || undefined }));
   }, 300);
 
+  const applyTimeRange = useCallback((fromInput: string, toInput: string) => {
+    const parsedFrom = parseThreadtimeInput(fromInput, timeRangeYear);
+    const parsedTo = parseThreadtimeInput(toInput, timeRangeYear);
+
+    setFilters((f) => {
+      const nextFrom = parsedFrom ?? (fromInput.trim() ? f.tsFrom : undefined);
+      const nextTo = parsedTo ?? (toInput.trim() ? f.tsTo : undefined);
+      const fromDate = parseFilterDate(nextFrom);
+      const toDate = parseFilterDate(nextTo);
+
+      if (fromDate && toDate && fromDate > toDate) {
+        return { ...f, tsFrom: nextTo, tsTo: nextFrom };
+      }
+
+      return {
+        ...f,
+        tsFrom: nextFrom,
+        tsTo: nextTo,
+      };
+    });
+  }, [timeRangeYear]);
+
   // Auto-apply when filters change
   useEffect(() => {
     debouncedLoadInitial();
@@ -117,6 +160,29 @@ export default function LogcatViewV2() {
   useEffect(() => {
     setLocalNotText(filters.notText ?? "");
   }, [filters.notText]);
+
+  useEffect(() => {
+    if (!stats?.minTsDisplay || !stats?.maxTsDisplay) return;
+    const minMatch = stats.minTsDisplay.match(THREADTIME_PATTERN);
+    const maxMatch = stats.maxTsDisplay.match(THREADTIME_PATTERN);
+    if (!minMatch || !maxMatch) return;
+    const fromMonth = Number(minMatch[1]);
+    const fromDay = Number(minMatch[2]);
+    const toMonth = Number(maxMatch[1]);
+    const toDay = Number(maxMatch[2]);
+    const year = fromMonth > toMonth || (fromMonth === toMonth && fromDay > toDay)
+      ? new Date().getFullYear() - 1
+      : new Date().getFullYear();
+    setTimeRangeYear(year);
+  }, [stats?.minTsDisplay, stats?.maxTsDisplay]);
+
+  useEffect(() => {
+    setLocalFrom(filterToThreadtime(filters.tsFrom));
+  }, [filters.tsFrom, timeRangeYear]);
+
+  useEffect(() => {
+    setLocalTo(filterToThreadtime(filters.tsTo));
+  }, [filters.tsTo, timeRangeYear]);
 
   // Handle custom events
   useEffect(() => {
@@ -410,6 +476,7 @@ export default function LogcatViewV2() {
             className={styles.headerBtn}
             onClick={openSearch}
             title="Search (Ctrl+F)"
+            aria-label="Search"
           >
             ⌕
           </button>
@@ -417,6 +484,7 @@ export default function LogcatViewV2() {
             className={styles.headerBtn}
             onClick={scrollToBottom}
             title="Scroll to bottom"
+            aria-label="Scroll to bottom"
           >
             ↓
           </button>
@@ -426,7 +494,7 @@ export default function LogcatViewV2() {
       {/* Filter Panel */}
       <div className={styles.filterPanel}>
         {/* Row 1: Text Filter with chips */}
-        <div className={styles.filterRow}>
+        <div className={`${styles.filterRow} ${styles.filterRowPrimary}`}>
           <div className={styles.textFilterGroup}>
             <label className={styles.filterLabel}>Text Filter</label>
             <div className={styles.textFilterInput}>
@@ -451,7 +519,7 @@ export default function LogcatViewV2() {
                 />
               </div>
               <div className={styles.textFilterOptions}>
-                <label className={styles.optionSmall} title="Use Regular Expression">
+                <label className={styles.optionSmall} title="Use Regular Expression" aria-label="Use Regular Expression">
                   <input
                     type="checkbox"
                     checked={filters.textMode === "regex"}
@@ -462,7 +530,7 @@ export default function LogcatViewV2() {
                   />
                   <span>.*</span>
                 </label>
-                <label className={styles.optionSmall} title="Case Sensitive">
+                <label className={styles.optionSmall} title="Case Sensitive" aria-label="Case Sensitive">
                   <input
                     type="checkbox"
                     checked={!!filters.caseSensitive}
@@ -478,7 +546,7 @@ export default function LogcatViewV2() {
         </div>
 
         {/* Row 2: Level, Tag, PID, TID, Exclude */}
-        <div className={styles.filterRow}>
+        <div className={`${styles.filterRow} ${styles.filterRowSecondary}`}>
           <div className={styles.levelFilterCompact}>
             <label className={styles.filterLabel}>Level</label>
             <div className={styles.levelSelector}>
@@ -566,67 +634,50 @@ export default function LogcatViewV2() {
         </div>
 
         {/* Row 3: Time Range */}
-        <div className={styles.filterRow}>
+        <div className={`${styles.filterRow} ${styles.filterRowTertiary}`}>
           <div className={styles.timeRangeGroup}>
             <label className={styles.filterLabel}>
               Time Range
+              <span className={styles.formatHint}>Format: MM-DD HH:mm:ss</span>
               {stats?.minTsDisplay && stats?.maxTsDisplay && (
                 <span className={styles.timeRangeHint}>
-                  (Data: {stats.minTsDisplay} ~ {stats.maxTsDisplay})
+                  Range: {stats.minTsDisplay} ~ {stats.maxTsDisplay}
                 </span>
               )}
             </label>
             <div className={styles.timeRangeInputs}>
-              <div className={styles.datePickerWrapper}>
-                <DatePicker
-                  selected={filters.tsFrom ? new Date(filters.tsFrom.replace(" ", "T")) : null}
-                  onChange={(date: Date | null) =>
-                    setFilters((f) => ({
-                      ...f,
-                      tsFrom: date ? formatLocalDateTime(date) : undefined,
-                    }))
-                  }
-                  showTimeSelect
-                  timeFormat="HH:mm"
-                  timeIntervals={15}
-                  dateFormat="yyyy-MM-dd HH:mm"
-                  placeholderText="From..."
-                  className={styles.datePickerInput}
-                  isClearable
-                  minDate={stats?.minTimestampMs ? new Date(stats.minTimestampMs) : undefined}
-                  maxDate={stats?.maxTimestampMs ? new Date(stats.maxTimestampMs) : undefined}
-                  openToDate={stats?.minTimestampMs ? new Date(stats.minTimestampMs) : undefined}
-                  portalId="datepicker-portal"
+              <div className={styles.timeInputWrapper}>
+                <input
+                  className={styles.timeInput}
+                  placeholder="MM-DD HH:mm:ss"
+                  value={localFrom}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setLocalFrom(val);
+                    applyTimeRange(val, localTo);
+                  }}
+                  onBlur={() => applyTimeRange(localFrom, localTo)}
                 />
               </div>
               <span className={styles.timeSeparator}>to</span>
-              <div className={styles.datePickerWrapper}>
-                <DatePicker
-                  selected={filters.tsTo ? new Date(filters.tsTo.replace(" ", "T")) : null}
-                  onChange={(date: Date | null) =>
-                    setFilters((f) => ({
-                      ...f,
-                      tsTo: date ? formatLocalDateTime(date) : undefined,
-                    }))
-                  }
-                  showTimeSelect
-                  timeFormat="HH:mm"
-                  timeIntervals={15}
-                  dateFormat="yyyy-MM-dd HH:mm"
-                  placeholderText="To..."
-                  className={styles.datePickerInput}
-                  isClearable
-                  minDate={stats?.minTimestampMs ? new Date(stats.minTimestampMs) : undefined}
-                  maxDate={stats?.maxTimestampMs ? new Date(stats.maxTimestampMs) : undefined}
-                  openToDate={stats?.maxTimestampMs ? new Date(stats.maxTimestampMs) : undefined}
-                  portalId="datepicker-portal"
+              <div className={styles.timeInputWrapper}>
+                <input
+                  className={styles.timeInput}
+                  placeholder="MM-DD HH:mm:ss"
+                  value={localTo}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setLocalTo(val);
+                    applyTimeRange(localFrom, val);
+                  }}
+                  onBlur={() => applyTimeRange(localFrom, localTo)}
                 />
               </div>
               <div className={styles.timeRangeActions}>
                 <button
                   className={styles.timeRangeBtn}
                   onClick={() => {
-                    const tsFrom = threadtimeToFilter(stats?.minTsDisplay);
+                    const tsFrom = threadtimeToFilter(stats?.minTsDisplay, timeRangeYear);
                     if (tsFrom) {
                       setFilters((f) => ({ ...f, tsFrom }));
                     }
@@ -639,7 +690,7 @@ export default function LogcatViewV2() {
                 <button
                   className={styles.timeRangeBtn}
                   onClick={() => {
-                    const tsTo = threadtimeToFilter(stats?.maxTsDisplay);
+                    const tsTo = threadtimeToFilter(stats?.maxTsDisplay, timeRangeYear);
                     if (tsTo) {
                       setFilters((f) => ({ ...f, tsTo }));
                     }
@@ -765,9 +816,19 @@ export default function LogcatViewV2() {
           <div className={styles.emptyState}>
             <div className={styles.emptyIcon}>📋</div>
             <div className={styles.emptyText}>
-              No logs to display.
-              <br />
-              Open a bugreport file to get started.
+              {(stats?.totalRows ?? 0) > 0 ? (
+                <>
+                  No logs match your filters.
+                  <br />
+                  Try adjusting your time range or clearing filters.
+                </>
+              ) : (
+                <>
+                  No logs to display.
+                  <br />
+                  Open a bugreport file to get started.
+                </>
+              )}
             </div>
           </div>
         )}

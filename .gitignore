@@ -25,3 +25,6 @@ dist-ssr
 
 # Project docs not tracked
 spec_docs/
+
+# Worktrees
+.worktrees/

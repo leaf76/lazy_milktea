@@ -53,6 +53,18 @@ input:focus-visible {
   outline-offset: 2px;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .stat-box {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -171,4 +183,498 @@ input:focus-visible {
   button:active {
     background-color: #0f0f0f69;
   }
+}
+
+/* Log levels */
+.level-V { color: #9ca3af; }
+.level-D { color: #93c5fd; }
+.level-I { color: #a7f3d0; }
+.level-W { color: var(--warn); }
+.level-E { color: var(--error); }
+.level-F { color: #ef4444; font-weight: 600; text-shadow: 0 0 10px rgba(239,68,68,0.35); }
+
+/* React DatePicker Dark Theme */
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
+
+.react-datepicker {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.react-datepicker__header {
+  background: #0f172a;
+  border-bottom: 1px solid #1f2937;
+  padding: 8px;
+}
+
+.react-datepicker__current-month,
+.react-datepicker-time__header {
+  color: #cbd5e1;
+  font-weight: 600;
+}
+
+.react-datepicker__day-name {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.react-datepicker__day {
+  color: #cbd5e1;
+  border-radius: 4px;
+}
+
+.react-datepicker__day:hover {
+  background: rgba(34, 211, 238, 0.2);
+  color: #22d3ee;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background: linear-gradient(135deg, #22d3ee, #e879f9);
+  color: #081018;
+  font-weight: 600;
+}
+
+.react-datepicker__day--today {
+  border: 1px solid #22d3ee;
+}
+
+.react-datepicker__day--outside-month {
+  color: #4b5563;
+}
+
+.react-datepicker__day--disabled {
+  color: #374151;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: #94a3b8;
+}
+
+.react-datepicker__navigation:hover *::before {
+  border-color: #22d3ee;
+}
+
+.react-datepicker__time-container {
+  border-left: 1px solid #1f2937;
+}
+
+.react-datepicker__time-container .react-datepicker__time-box {
+  width: 100px !important;
+}
+
+.react-datepicker__time {
+  background: #111827;
+}
+
+.react-datepicker__time-box {
+  width: 100px !important;
+}
+
+.react-datepicker__header--time {
+  background: #0f172a;
+  border-bottom: 1px solid #1f2937;
+  padding: 8px;
+}
+
+.react-datepicker__header--time .react-datepicker-time__header {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.react-datepicker__time-list-item {
+  color: #cbd5e1;
+  height: 28px !important;
+  line-height: 28px !important;
+}
+
+.react-datepicker__time-list-item:hover {
+  background: rgba(34, 211, 238, 0.2) !important;
+  color: #22d3ee;
+}
+
+.react-datepicker__time-list-item--selected {
+  background: linear-gradient(135deg, #22d3ee, #e879f9) !important;
+  color: #081018 !important;
+  font-weight: 600;
+}
+
+.react-datepicker__triangle {
+  display: none;
+}
+
+.react-datepicker__close-icon::after {
+  background: #374151;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.react-datepicker__close-icon:hover::after {
+  background: #ef4444;
+}
+
+/* Time input styles */
+.react-datepicker__input-time-container {
+  margin: 8px 0;
+  padding: 8px;
+  border-top: 1px solid #1f2937;
+}
+
+.react-datepicker-time__caption {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.react-datepicker-time__input-container {
+  display: flex;
+  align-items: center;
+}
+
+.react-datepicker-time__input {
+  margin-left: 8px;
+}
+
+.react-datepicker-time__input input {
+  background: #0f172a;
+  border: 1px solid #1f2937;
+  border-radius: 4px;
+  color: #cbd5e1;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: "JetBrains Mono", monospace;
+  width: 80px;
+}
+
+.react-datepicker-time__input input:focus {
+  outline: none;
+  border-color: #22d3ee;
+}
+
+/* Dashboard V2 */
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-bottom: var(--space-8);
+}
+
+/* Timeline View */
+.timeline-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--space-6) 0;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: var(--space-8);
+}
+
+.timeline-sidebar {
+  position: sticky;
+  top: var(--space-6);
+  height: fit-content;
+}
+
+.timeline-summary-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.timeline-legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.timeline-feed {
+  position: relative;
+  padding-left: 24px;
+}
+
+.timeline-feed::before {
+  content: "";
+  position: absolute;
+  left: 11px; /* Center of 24px area minus half width */
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.timeline-item {
+  position: relative;
+  margin-bottom: var(--space-8);
+}
+
+.timeline-item:last-child {
+  margin-bottom: 0;
+}
+
+.timeline-marker {
+  position: absolute;
+  left: -29px; /* Adjust based on padding and marker size */
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 2px solid var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  color: var(--primary);
+  font-size: 12px;
+}
+
+.timeline-marker.danger { border-color: var(--error); color: var(--error); }
+.timeline-marker.warn { border-color: var(--warn); color: var(--warn); }
+.timeline-marker.success { border-color: var(--accent); color: var(--accent); }
+
+.timeline-content {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  position: relative;
+  transition: transform 0.2s;
+}
+
+.timeline-content:hover {
+  transform: translateX(4px);
+  border-color: rgba(34, 211, 238, 0.3);
+}
+
+.timeline-time {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: var(--space-1);
+  display: block;
+}
+
+.timeline-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: var(--space-2);
+  color: var(--text);
+}
+
+.timeline-stats {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.t-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.t-stat-val {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.t-stat-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+@media (max-width: 900px) {
+  .timeline-container {
+    grid-template-columns: 1fr;
+  }
+  .timeline-sidebar {
+    position: static;
+    margin-bottom: var(--space-6);
+  }
+}
+
+.dashboard-hero {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.dashboard-hero h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  background: linear-gradient(90deg, var(--primary), var(--text));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.report-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  color: var(--muted);
+  margin-top: var(--space-2);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.9rem;
+}
+
+.report-meta-item {
+  display: grid;
+  gap: 4px;
+}
+
+.report-meta-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.65rem;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.stat-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-6);
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(34, 211, 238, 0.3);
+}
+
+.stat-card.danger { border-left: 4px solid var(--error); color: var(--error); }
+.stat-card.warn { border-left: 4px solid var(--warn); color: var(--warn); }
+.stat-card.info { border-left: 4px solid var(--primary); color: var(--primary); }
+.stat-card.success { border-left: 4px solid var(--accent); color: var(--accent); }
+
+.stat-card .muted { color: var(--muted); }
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: var(--space-2) 0;
+}
+
+.stat-value.is-muted {
+  font-size: 1.6rem;
+  color: var(--muted);
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.device-section {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-6);
+}
+
+@media (max-width: 900px) {
+  .device-section { grid-template-columns: 1fr; }
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.detail-item {
+  background: rgba(15, 23, 42, 0.4);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.detail-item.span-2 {
+  grid-column: span 2;
+}
+
+.detail-label {
+  color: var(--muted);
+  font-size: 0.75rem;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  font-weight: 500;
+  font-size: 0.95rem;
+  word-break: break-all;
+}
+
+.detail-mono {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.85rem;
+}
+
+.section-title {
+  margin-top: 0;
+  margin-bottom: var(--space-4);
+  color: var(--primary);
+}
+
+.actions-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: linear-gradient(135deg, rgba(34,211,238,0.05), transparent);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.actions-panel h3 { margin-top: 0; }
+
+.actions-hint {
+  font-size: 0.9rem;
+  margin: 0 0 16px 0;
+}
+
+.actions-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.actions-danger {
+  border-color: var(--error);
+  color: var(--error);
 }

@@ -74,17 +74,11 @@ async fn query_logcat(
 
     // Calculate offset based on page number (0-indexed)
     let offset = (page as i64) * (page_size as i64);
-    let cursor = if offset > 0 {
-        Some(QueryCursor::new(offset, CursorDirection::Forward, 0))
-    } else {
-        None
-    };
-
-    let response = executor
-        .query(&filters, cursor.as_ref(), page_size as usize, CursorDirection::Forward)
+    let rows = executor
+        .query_by_offset(&filters, offset, page_size as usize)
         .map_err(|e| e.to_string())?;
 
-    Ok(response.rows)
+    Ok(rows)
 }
 
 // Legacy stream function (kept for compatibility)
@@ -118,7 +112,12 @@ async fn query_logcat_stream(
     let executor = query::QueryExecutor::open(&db_path).map_err(|e| e.to_string())?;
 
     // Convert legacy cursor to new format
-    let query_cursor = cursor.map(|pos| QueryCursor::new(pos as i64, CursorDirection::Forward, 0));
+    let query_cursor = match cursor {
+        Some(pos) => executor
+            .cursor_from_id(pos as i64, 0)
+            .map_err(|e| e.to_string())?,
+        None => None,
+    };
 
     let response = executor
         .query(&filters, query_cursor.as_ref(), limit as usize, CursorDirection::Forward)
@@ -184,11 +183,11 @@ async fn jump_to_time(
     let executor = query::QueryExecutor::open(&db_path).map_err(|e| e.to_string())?;
 
     // Convert target time to filters
-    let mut time_filters = filters.clone();
-    time_filters.ts_from = Some(target_time);
+    let target_ms = crate::time::iso_ts_key_ms(&target_time)
+        .map_err(|e| e.to_string())? as f64;
 
     executor
-        .query(&time_filters, None, limit as usize, CursorDirection::Forward)
+        .query_from_time(&filters, target_ms, limit as usize)
         .map_err(|e| e.to_string())
 }
 

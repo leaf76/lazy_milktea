@@ -61,6 +61,7 @@ impl LogcatDatabase {
     }
 
     /// Open an existing database
+    #[allow(dead_code)]
     pub fn open(db_path: &Path) -> Result<Self> {
         if !db_path.exists() {
             return Err(LogcatError::CacheNotFound(
@@ -105,6 +106,7 @@ impl LogcatDatabase {
     }
 
     /// Get total row count
+    #[allow(dead_code)]
     pub fn count(&self) -> Result<usize> {
         self.conn
             .query_row("SELECT COUNT(*) FROM logs", [], |r| r.get(0))
@@ -112,6 +114,7 @@ impl LogcatDatabase {
     }
 
     /// Get time range
+    #[allow(dead_code)]
     pub fn time_range(&self) -> Result<(Option<f64>, Option<f64>)> {
         self.conn
             .query_row(
@@ -144,6 +147,7 @@ impl LogcatDatabase {
     }
 
     /// Get the underlying connection for advanced queries
+    #[allow(dead_code)]
     pub fn connection(&self) -> &Connection {
         &self.conn
     }

@@ -5,9 +5,10 @@ use crate::types::DeviceInfo;
 use std::fs::File;
 use std::io::{BufReader, Read};
 use std::path::Path;
-use std::sync::Arc;
 use zip::read::ZipArchive;
 use dirs::home_dir;
+
+const STREAMING_THRESHOLD_BYTES: u64 = 50 * 1024 * 1024;
 
 /// Result of parsing a bugreport
 #[derive(Debug)]
@@ -35,6 +36,15 @@ fn is_zip(path: &str) -> bool {
     path.to_ascii_lowercase().ends_with(".zip")
 }
 
+fn stable_path_hash(input: &str) -> String {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in input.as_bytes() {
+        hash ^= *byte as u64;
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{:016x}", hash)
+}
+
 /// Prepare cache directory for parsed data
 fn prepare_cache_dir(report_path: &str) -> Result<std::path::PathBuf> {
     let home = home_dir()
@@ -45,7 +55,8 @@ fn prepare_cache_dir(report_path: &str) -> Result<std::path::PathBuf> {
         .and_then(|s| s.to_str())
         .unwrap_or("report");
 
-    let dir = home.join(".lazy_milktea_cache").join(name);
+    let hash = stable_path_hash(report_path);
+    let dir = home.join(".lazy_milktea_cache").join(format!("{}-{}", name, hash));
     std::fs::create_dir_all(&dir)?;
     Ok(dir)
 }
@@ -77,6 +88,11 @@ fn parse_zip(path: &str, cache_dir: &Path, db_path: &Path) -> Result<ParseResult
     }
 
     let idx = chosen_index.ok_or(LogcatError::NoBugreportFound)?;
+
+    if chosen_size >= STREAMING_THRESHOLD_BYTES {
+        return parse_zip_streaming(path, cache_dir, db_path, |_p| {});
+    }
+
     let mut file = archive.by_index(idx)
         .map_err(|e| LogcatError::Zip(e))?;
 
@@ -103,6 +119,11 @@ fn parse_zip(path: &str, cache_dir: &Path, db_path: &Path) -> Result<ParseResult
 }
 
 fn parse_txt(path: &str, cache_dir: &Path, db_path: &Path) -> Result<ParseResult> {
+    let file_size = std::fs::metadata(path)?.len();
+    if file_size >= STREAMING_THRESHOLD_BYTES {
+        return parse_txt_streaming(path, cache_dir, db_path, |_p| {});
+    }
+
     // Read as bytes first, then convert with lossy UTF-8 handling
     let bytes = std::fs::read(path)?;
     let content = String::from_utf8_lossy(&bytes).into_owned();
@@ -124,6 +145,7 @@ fn parse_txt(path: &str, cache_dir: &Path, db_path: &Path) -> Result<ParseResult
 }
 
 /// Get the cache directory path for a report
+#[allow(dead_code)]
 pub fn get_cache_dir(report_path: &str) -> Result<std::path::PathBuf> {
     prepare_cache_dir(report_path)
 }
@@ -133,7 +155,6 @@ pub fn get_cache_dir(report_path: &str) -> Result<std::path::PathBuf> {
 // ============================================================================
 
 /// Progress callback for streaming parsing
-pub type ProgressCallback = Arc<dyn Fn(IndexProgress) + Send + Sync>;
 
 /// Parse a bugreport with streaming (for large files)
 pub fn parse_bugreport_streaming<F>(

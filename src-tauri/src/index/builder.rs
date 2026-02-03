@@ -34,6 +34,7 @@ impl IndexBuilder {
     }
 
     /// Set the time anchor for timestamp conversion
+    #[allow(dead_code)]
     pub fn with_anchor(mut self, anchor: TimeAnchor) -> Self {
         self.anchor = Some(anchor);
         self
@@ -102,6 +103,7 @@ impl IndexBuilder {
     }
 
     /// Build index from a file
+    #[allow(dead_code)]
     pub fn build_from_file(self, file_path: &Path) -> Result<IndexSummary> {
         let content = std::fs::read_to_string(file_path)
             .map_err(|e| LogcatError::Io(e))?;
@@ -110,6 +112,7 @@ impl IndexBuilder {
 }
 
 /// Quick function to build index from text
+#[allow(dead_code)]
 pub fn build_logcat_index(text: &str, db_path: &Path) -> Result<IndexSummary> {
     IndexBuilder::new(db_path)?.build_from_text(text)
 }

@@ -1,5 +1,4 @@
 use crate::error::{LogcatError, Result};
-use crate::index::sqlite::LogcatDatabase;
 use crate::parser::LOGCAT_RE;
 use crate::time::{TimeAnchor, derive_time_anchor, to_iso_safe, iso_ts_key_ms};
 use crate::types::LogRow;
@@ -67,6 +66,7 @@ impl StreamingIndexBuilder {
     }
 
     /// Set the time anchor
+    #[allow(dead_code)]
     pub fn with_anchor(mut self, anchor: TimeAnchor) -> Self {
         self.anchor = Some(anchor);
         self
@@ -82,6 +82,7 @@ impl StreamingIndexBuilder {
     }
 
     /// Get cancel flag for external cancellation
+    #[allow(dead_code)]
     pub fn cancel_flag(&self) -> Arc<AtomicBool> {
         Arc::clone(&self.cancel_flag)
     }
@@ -117,7 +118,7 @@ impl StreamingIndexBuilder {
         };
 
         // Step 2: Create database (disable FTS trigger for bulk loading)
-        let mut db = self.create_db_without_fts_trigger()?;
+        let db = self.create_db_without_fts_trigger()?;
 
         let mut summary = IndexSummary::default();
         let mut bytes_read: u64 = 0;
@@ -368,6 +369,7 @@ impl StreamingDatabase {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::index::sqlite::LogcatDatabase;
     use std::io::Cursor;
     use std::time::{SystemTime, UNIX_EPOCH};
 

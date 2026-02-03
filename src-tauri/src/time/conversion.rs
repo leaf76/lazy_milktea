@@ -141,6 +141,7 @@ fn parse_threadtime(ts: &str, anchor: &TimeAnchor) -> Result<NaiveDateTime> {
 
 /// Convert threadtime format to sortable numeric key
 /// Used for time-based filtering without full ISO conversion
+#[allow(dead_code)]
 pub fn threadtime_ts_key(s: &str) -> anyhow::Result<u64> {
     let part = s.trim();
     let (md, rest) = part
@@ -207,7 +208,6 @@ mod tests {
     fn make_anchor(tz: Tz, year: i32) -> TimeAnchor {
         TimeAnchor {
             tz,
-            year,
             report_date: NaiveDate::from_ymd_opt(year, 6, 15),
         }
     }

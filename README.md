@@ -99,6 +99,13 @@ cargo clippy -- -D warnings
 - Commit 格式為 Conventional Commits（例：`feat(parser): add log indexing`）
 - 詳細規範請參考 [`AGENTS.md`](./AGENTS.md)
 
+## Logcat 查詢備註
+
+- V2 cursor 以 `ts_unix + id` 做排序鍵，前後端需對齊 `tsUnix` 欄位
+- 單一檔案超過 50MB 會改用 streaming parser
+- Plain text 搜尋在可用時使用 SQLite FTS（單詞、不區分大小寫），其他情境由 Rust 端過濾
+- Cache 目錄包含路徑 hash，避免同名檔案覆蓋
+
 ## IDE 建議
 
 - [VS Code](https://code.visualstudio.com/)

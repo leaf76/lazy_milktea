@@ -162,19 +162,11 @@ export default function LogcatViewV2() {
   }, [filters.notText]);
 
   useEffect(() => {
-    if (!stats?.minTsDisplay || !stats?.maxTsDisplay) return;
-    const minMatch = stats.minTsDisplay.match(THREADTIME_PATTERN);
-    const maxMatch = stats.maxTsDisplay.match(THREADTIME_PATTERN);
-    if (!minMatch || !maxMatch) return;
-    const fromMonth = Number(minMatch[1]);
-    const fromDay = Number(minMatch[2]);
-    const toMonth = Number(maxMatch[1]);
-    const toDay = Number(maxMatch[2]);
-    const year = fromMonth > toMonth || (fromMonth === toMonth && fromDay > toDay)
-      ? new Date().getFullYear() - 1
-      : new Date().getFullYear();
-    setTimeRangeYear(year);
-  }, [stats?.minTsDisplay, stats?.maxTsDisplay]);
+    if (!stats?.minTimestampMs || !stats?.maxTimestampMs) return;
+    const minYear = new Date(stats.minTimestampMs).getFullYear();
+    const maxYear = new Date(stats.maxTimestampMs).getFullYear();
+    setTimeRangeYear(maxYear || minYear);
+  }, [stats?.minTimestampMs, stats?.maxTimestampMs]);
 
   useEffect(() => {
     setLocalFrom(filterToThreadtime(filters.tsFrom));

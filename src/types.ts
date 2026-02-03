@@ -66,6 +66,7 @@ export type CursorDirection = "forward" | "backward";
 
 export type QueryCursor = {
   position: number;
+  tsUnix: number;
   direction: CursorDirection;
   filterHash: number;
 };

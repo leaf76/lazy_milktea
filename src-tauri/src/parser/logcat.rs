@@ -22,6 +22,7 @@ pub static LOGCAT_RE_MULTILINE: Lazy<Regex> = Lazy::new(|| {
 });
 
 /// Parse a single logcat line into LogRow
+#[allow(dead_code)]
 pub fn parse_logcat_line(line: &str) -> Option<LogRow> {
     let caps = LOGCAT_RE.captures(line)?;
 
@@ -37,6 +38,7 @@ pub fn parse_logcat_line(line: &str) -> Option<LogRow> {
 }
 
 /// Check if a line looks like a logcat entry
+#[allow(dead_code)]
 pub fn is_logcat_line(line: &str) -> bool {
     LOGCAT_RE.is_match(line)
 }

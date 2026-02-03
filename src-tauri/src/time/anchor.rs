@@ -1,4 +1,4 @@
-use chrono::{Local, Datelike, NaiveDate};
+use chrono::{Datelike, NaiveDate};
 use chrono_tz::Tz;
 use regex::Regex;
 use once_cell::sync::Lazy;
@@ -7,7 +7,6 @@ use once_cell::sync::Lazy;
 #[derive(Debug, Clone)]
 pub struct TimeAnchor {
     pub tz: Tz,
-    pub year: i32,
     pub report_date: Option<NaiveDate>,
 }
 
@@ -57,11 +56,7 @@ fn extract_report_date(text: &str) -> Option<NaiveDate> {
 pub fn derive_time_anchor(text: &str) -> TimeAnchor {
     let tz = extract_timezone(text).unwrap_or(chrono_tz::UTC);
     let report_date = extract_report_date(text);
-    let year = report_date
-        .map(|d| d.year())
-        .unwrap_or_else(|| Local::now().year());
-
-    TimeAnchor { tz, year, report_date }
+    TimeAnchor { tz, report_date }
 }
 
 /// Infer the most likely year for a given month/day based on reference date

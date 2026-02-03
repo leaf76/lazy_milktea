@@ -16,6 +16,9 @@ pub enum CursorDirection {
 pub struct QueryCursor {
     /// Row ID (SQLite rowid) at current position
     pub position: i64,
+    /// Timestamp key used for ordering (ts_unix)
+    #[serde(default)]
+    pub ts_unix: f64,
     /// Query direction
     pub direction: CursorDirection,
     /// Hash of filter conditions (to validate cursor)
@@ -23,9 +26,10 @@ pub struct QueryCursor {
 }
 
 impl QueryCursor {
-    pub fn new(position: i64, direction: CursorDirection, filter_hash: u64) -> Self {
+    pub fn new(position: i64, ts_unix: f64, direction: CursorDirection, filter_hash: u64) -> Self {
         Self {
             position,
+            ts_unix,
             direction,
             filter_hash,
         }
@@ -35,6 +39,7 @@ impl QueryCursor {
     pub fn start(filter_hash: u64) -> Self {
         Self {
             position: 0,
+            ts_unix: 0.0,
             direction: CursorDirection::Forward,
             filter_hash,
         }
@@ -112,13 +117,15 @@ mod tests {
 
     #[test]
     fn test_cursor_serialization() {
-        let cursor = QueryCursor::new(100, CursorDirection::Forward, 12345);
+        let cursor = QueryCursor::new(100, 123.0, CursorDirection::Forward, 12345);
         let json = serde_json::to_string(&cursor).unwrap();
         assert!(json.contains("\"position\":100"));
+        assert!(json.contains("\"tsUnix\":123.0"));
         assert!(json.contains("\"direction\":\"forward\""));
 
         let parsed: QueryCursor = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed.position, 100);
+        assert_eq!(parsed.ts_unix, 123.0);
     }
 
     #[test]
